@@ -1,0 +1,4 @@
+rsa*
+*.ovpn
+**/*.mdb
+misc*

@@ -1,0 +1,36 @@
+version: '2'
+services:
+  ldap:
+    image: osixia/openldap
+    ports:
+      - 389:389
+      - 636:636
+    volumes:
+      - ./ldap/dbfiles:/var/lib/ldap
+      - ./ldap/dbconfig:/var/lib/slapd.d
+    environment:
+      LDAP_ADMIN_PASSWORD: toor
+  lam:
+    image: ldapaccountmanager/lam:stable
+    ports:
+      - 8080:80
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: toor
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8082:8081
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: toor
+
+  shinyproxy:
+    image: shinyproxydemo
+    ports:
+      - 8081:8080
