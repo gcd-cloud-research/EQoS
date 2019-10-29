@@ -34,3 +34,6 @@ services:
     image: shinyproxydemo
     ports:
       - 8081:8080
+
+  producer:
+    image: producer
