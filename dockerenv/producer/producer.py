@@ -1,79 +1,40 @@
-import requests
+import machinestats
+from flask import Flask, request, abort
+from werkzeug.utils import secure_filename
 import time as t
-from datetime import datetime
-from calendar import timegm
 
-format = "%Y-%m-%dT%H:%M:%S"
+app = Flask(__name__)
 
-def nanosecs(ts):
-    whole, decimal = ts.split(".")
-    decimal = decimal[:-1]  # Remove final Z
-    seconds = timegm(datetime.strptime(whole, format).timetuple()) + float("0." + decimal)
-    return seconds * 10 ** 9
+@app.route('/test')
+def test():
+    return "The service is up\n"
 
-def display(time, cpu, memory):
-    print(time)
-    print("\tCPU: %f%%" % (cpu))
-    print("\tMem: %.2f%%" % (memory))
-    print("")
 
-previous = None
-while(True):
-    t.sleep(1)
-    try:
-        cr = requests.get("http://monitor:8080/api/v1.3/containers")
-        cjson = cr.json()
-        mr = requests.get("http://monitor:8080/api/v1.3/machine")
-        mjson = mr.json()
-    except:
-        print("Could not connect")
-        continue
+@app.route('/stats')
+def stats():
+    time, cpu, mem = machinestats.get_usage()
+    return {
+        'time': time,
+        'cpu': cpu,
+        'mem': mem
+    }
 
-    totalmem = mjson['memory_capacity']
 
-    time = cjson['stats'][-1]['timestamp']
-    cpu = cjson['stats'][-1]['cpu']['usage']['total']
-    mem = cjson['stats'][-1]['memory']['usage']
-    if previous:
-        prev_time, prev_cpu, prev_mem = previous
-        if time == prev_time:
-            continue
-        cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
-        display(time, cpu_usage, float(mem) / float(totalmem) * 100)
+@app.route('/routine/python', methods=['GET', 'POST'])
+def new_python():
+    if request.method == 'POST':
+        if 'program' not in request.files:
+            abort(400)
 
-    previous = (time, cpu, mem)
+        f = request.files['program']
+        name = secure_filename(f.filename)
+        if name.split('.')[-1] != 'py':
+            abort(401)
 
-"""
-previous = {}
+        f.save('/received/' + name)
+        return 'OK'
 
-while(True):
-    t.sleep(1)
-    try:
-        cr = requests.get("http://monitor:8080/api/v1.3/docker")
-        cjson = cr.json()
-        mr = requests.get("http://monitor:8080/api/v1.3/machine")
-        mjson = mr.json()
-    except:
-        print("Could not connect")
-        continue
+    return 'Submit a python script file with name "program"'
 
-    totalmem = mjson['memory_capacity']
-
-    for name, info in cjson.items():
-        time = info['stats'][-1]['timestamp']
-        cpu = info['stats'][-1]['cpu']['usage']['total']
-        mem = info['spec']['memory']['limit']
-        if name in previous:
-            prev_time, prev_cpu, prev_mem = previous[name]
-            if time == prev_time:
-                continue
-            cpu_usage = (cpu - prev_cpu) / nanosecs(prev_time, time)
-            print(name, time)
-            print("\tMem: %s/%s (%.2f%%)" % (
-                mem,
-                totalmem,
-                float(mem) / float(totalmem)
-            ))
-            print("\tCPU: %f%%" % (cpu_usage))
-        previous[name] = (time, cpu, mem)
-"""
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0')

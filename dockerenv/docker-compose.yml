@@ -39,11 +39,15 @@ services:
     image: producer
     depends_on:
       - monitor
+    ports:
+      - 8000:5000
+    volumes:
+      - ./producer/pending:/received/
 
   monitor:
     image: google/cadvisor
     ports:
-      - 8000:8080
+      - 8001:8080
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
