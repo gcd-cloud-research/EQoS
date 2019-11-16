@@ -10,16 +10,20 @@ services:
       - ./ldap/dbconfig:/var/lib/slapd.d
     environment:
       LDAP_ADMIN_PASSWORD: toor
+
   lam:
     image: ldapaccountmanager/lam:stable
     ports:
       - 8080:80
+
   mongo:
     image: mongo
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: toor
+    ports:
+      - 27017:27017
 
   mongo-express:
     image: mongo-express

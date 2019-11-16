@@ -2,3 +2,4 @@ rsa*
 *.ovpn
 **/*.mdb
 misc*
+**/test.py

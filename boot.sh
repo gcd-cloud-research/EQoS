@@ -4,9 +4,6 @@ if [ ! -d "dockerenv/producer/pending" ]; then
   mkdir "dockerenv/producer/pending"
 fi
 
-echo "******** Starting container deployment service... ********"
-./routineManager.sh &
-
 cd dockerenv
 echo "******** Building images... ********"
 ls -F | grep / | awk 'BEGIN{FS="/"}{print $1}' | while read line; do
@@ -20,6 +17,10 @@ done
 echo "******** All built, starting... ********"
 
 docker-compose up &
+
+echo "******** Starting container deployment service... ********"
+cd ..
+./routineManager.sh &
 
 read
 kill "$(ps -e | grep docker-compose | awk '{print $1}')"
