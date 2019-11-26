@@ -57,10 +57,17 @@ La creació de contenidors requerirà que el sistema estigui escoltant i rebi co
 Els contenidors es poden eliminar a ells mateixos
 Escriptura dels resultats i logs a fitxer. Després es pugen automàticament a BBDD
 
-## 15/11 ()
+## 15/11 (6h)
 
 Utilitzar màquina a OpenNebula per fer la ETL amb Pentaho. Crear arxiu amb Access i posar-lo a la màquina.
 
 ### Tasques
 
 * Acabar la feina de la setmana passada
+
+## 22/11 (2h)
+
+### Tasques
+
+* Credencials i dades de rutina en un fitxer de configuració al crear el worker
+* Servei per crear contenidor i fer ETL quan hi hagi canvis en .accdb (bash)

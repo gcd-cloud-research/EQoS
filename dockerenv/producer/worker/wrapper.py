@@ -5,25 +5,41 @@ from datetime import datetime
 import sys
 import json
 import os
+from bson.objectid import ObjectId
 
+CONF = "config.json"
 LOG = "log.log"
 RES = "results.json"
 
 def exists(path):
-    import os
     return os.path.isfile("./" + path)
 
-# Get routine id
-if not exists("id.txt"):
+# Get configuration
+if (not exists(CONF)):
     sys.exit(1)
 
-with open("id.txt") as fh:
-    from bson.objectid import ObjectId
-    id = ObjectId(fh.readline().strip())
+with open(CONF) as fh:
+    conf = json.load(fh)
+    if 'mongo_user' not in conf or 'mongo_pass' not in conf:
+        sys.exit(1)
+
+id = ObjectId(sys.argv[1])
+
+# Set routine as RUNNING
+client = pymongo.MongoClient(
+    "mongodb://%s:%s@mongo:27017" % (conf['mongo_user'], conf['mongo_pass'])
+)
+client.ehqos.tasks.update_one({"_id": id}, {"$set": {
+    'status': 'RUNNING'
+}})
 
 # Run routine
+extension = sys.argv[2]
 if os.fork() == 0:
-    os.execlp('python', '-u', '/worker.py')
+    if extension == 'py':
+        os.execlp('python', '-u', '/worker.py')
+    elif extension == 'r':
+        os.execlp('Rscript', '/worker.r')
 _, status = os.wait()
 
 # Get results from files
@@ -40,7 +56,6 @@ if exists(RES):
         results = json.load(fh)
 
 # Save results in database
-client = pymongo.MongoClient("mongodb://admin:toor@mongo:27017")
 client.ehqos.tasks.update_one({"_id": id}, {"$set": {
     'status': 'SUCCESS' if status == 0 else 'FAILURE',
     'end_time': datetime.utcnow().isoformat(),

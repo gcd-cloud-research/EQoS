@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route('/test')
 def test():
-    return "The service is up\n"
+    return "The service is up"
 
 
 @app.route('/stats')
@@ -20,7 +20,7 @@ def stats():
     }
 
 
-@app.route('/routine/python', methods=['GET', 'POST'])
+@app.route('/routine', methods=['GET', 'POST'])
 def new_python():
     if request.method == 'POST':
         if 'program' not in request.files:
@@ -28,13 +28,14 @@ def new_python():
 
         f = request.files['program']
         name = secure_filename(f.filename)
-        if name.split('.')[-1] != 'py':
+        extension = name.split('.')[-1]
+        if extension not in ['py', 'r']:
             abort(401)
 
         f.save('/received/' + name)
         return 'OK'
 
-    return 'Submit a python script file with name "program"'
+    return 'Submit a python or R script file with name "program"'
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')

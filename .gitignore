@@ -3,3 +3,5 @@ rsa*
 **/*.mdb
 misc*
 **/test.py
+**/env
+**/config.*

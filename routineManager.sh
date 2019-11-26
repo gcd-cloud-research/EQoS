@@ -1,6 +1,7 @@
 #!/bin/bash
-pauseTime=1
-prunePeriod=10
+pauseTime=1 # Time between each check for pending routines
+prunePeriod=100 # Number of checks between each image prune
+
 count=0
 while true; do
   if [ $count -eq $prunePeriod ]; then
@@ -14,21 +15,23 @@ while true; do
       continue
     fi
 
+    extension=$(echo "$line" | awk -F. '{ print $2 }')
+
     # Create new object in db
-    imagename=$(python initelem.py)
-    echo $imagename
+    imagename=$(python dbutils/initelem.py "$line" "dbutils/config.json")
+    echo "$imagename $line"
 
     # Create and fill directory for building image
     cp -r "dockerenv/producer/worker" "dockerenv/producer/pending/$imagename"
-    echo $imagename > "dockerenv/producer/pending/$imagename/id.txt"
-    mv "dockerenv/producer/pending/$line" "dockerenv/producer/pending/$imagename/worker.py"
+    cp "dbutils/config.json" "dockerenv/producer/pending/$imagename"
+    mv "dockerenv/producer/pending/$line" "dockerenv/producer/pending/$imagename/worker.$extension"
 
     # Build image and remove directory
     docker build "dockerenv/producer/pending/$imagename" -t "$imagename"
     rm -r "dockerenv/producer/pending/$imagename"
 
     # Run container and remove
-    docker run --rm --network dockerenv_default -d "$imagename"
+    docker run --rm --network dockerenv_default -d "$imagename" wrapper.py $imagename $extension
   done
 
   sleep $pauseTime
