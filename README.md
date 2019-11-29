@@ -65,9 +65,16 @@ Utilitzar màquina a OpenNebula per fer la ETL amb Pentaho. Crear arxiu amb Acce
 
 * Acabar la feina de la setmana passada
 
-## 22/11 (2h)
+## 22/11 (6h)
 
 ### Tasques
 
 * Credencials i dades de rutina en un fitxer de configuració al crear el worker
+
+## 29/11 ()
+
+### Tasques
+
+* API gateway que enruti cap a els serveis / Mirar si es pot fer amb Rancher
+* API de consulta a Mongo (endpoints + Mongo) (alchemy, spring, mongoose? alt volum de dades)
 * Servei per crear contenidor i fer ETL quan hi hagi canvis en .accdb (bash)
