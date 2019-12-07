@@ -25,15 +25,6 @@ services:
     ports:
       - 27017:27017
 
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - 8082:8081
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: toor
-
   shinyproxy:
     image: shinyproxy
     ports:
