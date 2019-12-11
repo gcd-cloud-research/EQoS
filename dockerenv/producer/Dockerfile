@@ -1,7 +1,8 @@
 FROM python:3.7
 
-COPY Dockerfile machinestats.py producer.py requirements.txt /
 RUN mkdir /received
 WORKDIR /
+COPY requirements.txt /
 RUN pip install -r requirements.txt
+COPY machinestats.py producer.py /
 CMD ["python", "producer.py"]

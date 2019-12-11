@@ -18,12 +18,18 @@ services:
 
   mongo:
     image: mongo
-    restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: toor
     ports:
       - 27017:27017
+
+  mongoapi:
+    image: mongoapi
+    depends_on:
+      - mongo
+    ports:
+      - 8001:8000
 
   shinyproxy:
     image: shinyproxy
@@ -42,7 +48,7 @@ services:
   monitor:
     image: google/cadvisor
     ports:
-      - 8001:8080
+      - 8002:8080
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw

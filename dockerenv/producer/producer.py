@@ -1,9 +1,9 @@
 import machinestats
 from flask import Flask, request, abort
 from werkzeug.utils import secure_filename
-import time as t
 
 app = Flask(__name__)
+
 
 @app.route('/test')
 def test():
@@ -36,6 +36,7 @@ def new_python():
         return 'OK'
 
     return 'Submit a python or R script file with name "program"'
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0')

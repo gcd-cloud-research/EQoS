@@ -5,3 +5,4 @@ misc*
 **/test.py
 **/env
 **/config.*
+**/__pycache__

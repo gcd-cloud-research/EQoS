@@ -4,6 +4,7 @@ from calendar import timegm
 
 format = "%Y-%m-%dT%H:%M:%S"
 
+
 def nanosecs(ts):
     whole, decimal = ts.split(".")
     decimal = decimal[:-1]  # Remove final Z
@@ -11,6 +12,7 @@ def nanosecs(ts):
         datetime.strptime(whole, format).timetuple()
     ) + float("0." + decimal)
     return seconds * 10 ** 9
+
 
 def display(time, cpu, memory):
     print(time)
@@ -24,6 +26,7 @@ def get_stats(stats):
     cpu = stats['cpu']['usage']['total']
     mem = stats['memory']['usage']
     return time, cpu, mem
+
 
 def get_usage():
     try:
