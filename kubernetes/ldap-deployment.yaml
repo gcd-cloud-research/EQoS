@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: ldap
+  name: ldap
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: ldap
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+        kompose.version: 1.19.0 (f63a961c)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: ldap
+    spec:
+      containers:
+      - env:
+        - name: LDAP_ADMIN_PASSWORD
+          value: toor
+        image: osixia/openldap
+        name: ldap
+        ports:
+        - containerPort: 389
+        - containerPort: 636
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/ldap
+          name: ldap-claim0
+        - mountPath: /var/lib/slapd.d
+          name: ldap-claim1
+      restartPolicy: Always
+      volumes:
+      - name: ldap-claim0
+        persistentVolumeClaim:
+          claimName: ldap-claim0
+      - name: ldap-claim1
+        persistentVolumeClaim:
+          claimName: ldap-claim1
+status: {}

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: shinyproxy
+  name: shinyproxy
+spec:
+  type: NodePort
+  ports:
+  - name: "8081"
+    port: 8081
+    targetPort: 8080
+  selector:
+    io.kompose.service: shinyproxy
+status:
+  loadBalancer: {}

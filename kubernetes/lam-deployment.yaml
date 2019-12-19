@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: lam
+  name: lam
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: lam
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+        kompose.version: 1.19.0 (f63a961c)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: lam
+    spec:
+      containers:
+      - image: ldapaccountmanager/lam:stable
+        name: lam
+        ports:
+        - containerPort: 80
+        resources: {}
+      restartPolicy: Always
+status: {}

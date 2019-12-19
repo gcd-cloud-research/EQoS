@@ -34,7 +34,8 @@ class Query:
         Filters are obtained by combining body and query parameters.
         Query parameters have precedence.
         """
-        query_params = json.loads(req.bounded_stream.read())
+        body = req.bounded_stream.read()
+        query_params = json.loads(body if body else "{}")
         for key, value in req.params.items():
             query_params[key] = value
 

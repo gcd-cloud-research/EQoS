@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: ldap
+  name: ldap
+spec:
+  ports:
+  - name: "389"
+    port: 389
+    targetPort: 389
+  - name: "636"
+    port: 636
+    targetPort: 636
+  selector:
+    io.kompose.service: ldap
+status:
+  loadBalancer: {}

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: monitor
+  name: monitor
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: monitor
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+        kompose.version: 1.19.0 (f63a961c)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: monitor
+    spec:
+      containers:
+      - image: google/cadvisor
+        name: monitor
+        ports:
+        - containerPort: 8080
+        resources: {}
+        volumeMounts:
+        - mountPath: /rootfs
+          name: monitor-claim0
+          readOnly: true
+        - mountPath: /var/run
+          name: monitor-claim1
+        - mountPath: /sys
+          name: monitor-claim2
+          readOnly: true
+        - mountPath: /var/lib/docker
+          name: monitor-claim3
+          readOnly: true
+      restartPolicy: Always
+      volumes:
+      - name: monitor-claim0
+        persistentVolumeClaim:
+          claimName: monitor-claim0
+          readOnly: true
+      - name: monitor-claim1
+        persistentVolumeClaim:
+          claimName: monitor-claim1
+      - name: monitor-claim2
+        persistentVolumeClaim:
+          claimName: monitor-claim2
+          readOnly: true
+      - name: monitor-claim3
+        persistentVolumeClaim:
+          claimName: monitor-claim3
+          readOnly: true
+status: {}
