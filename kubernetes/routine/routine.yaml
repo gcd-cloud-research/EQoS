@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: routinename
+spec:
+  template:
+    spec:
+      containers:
+      - name: routinename
+        image: imagename
+        command: ["wrapper.py", params]
+      restartPolicy: Never
+  backoffLimit: 4

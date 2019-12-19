@@ -45,18 +45,15 @@ spec:
       restartPolicy: Always
       volumes:
       - name: monitor-claim0
-        persistentVolumeClaim:
-          claimName: monitor-claim0
-          readOnly: true
+        hostPath:
+          path: /
       - name: monitor-claim1
-        persistentVolumeClaim:
-          claimName: monitor-claim1
+        hostPath:
+          path: /var/run
       - name: monitor-claim2
-        persistentVolumeClaim:
-          claimName: monitor-claim2
-          readOnly: true
+        hostPath:
+          path: /sys
       - name: monitor-claim3
-        persistentVolumeClaim:
-          claimName: monitor-claim3
-          readOnly: true
+        hostPath:
+          path: /var/lib/docker
 status: {}

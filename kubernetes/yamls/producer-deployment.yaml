@@ -37,6 +37,7 @@ spec:
       restartPolicy: Always
       volumes:
       - name: producer-claim0
-        persistentVolumeClaim:
-          claimName: producer-claim0
+        hostPath:
+          path: /home/docker/pending
+          type: DirectoryOrCreate
 status: {}
