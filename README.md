@@ -78,3 +78,13 @@ Utilitzar màquina a OpenNebula per fer la ETL amb Pentaho. Crear arxiu amb Acce
 * API gateway que enruti cap a els serveis / Mirar si es pot fer amb Rancher
 * API de consulta a Mongo (endpoints + Mongo) (alchemy, spring, mongoose? alt volum de dades)
 * Servei per crear contenidor i fer ETL quan hi hagi canvis en .accdb (bash)
+
+## 13/12 (5h)
+
+### Tasques
+
+* Muntar servei sobre Kubernetes, després importar amb Rancher
+
+### Anotacions
+
+Amb el servei muntat sobre Kubernetes i Minikube, cal carregar les images locals a Minikube abans d'engegar els Deployments.
