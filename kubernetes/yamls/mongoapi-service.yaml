@@ -12,7 +12,7 @@ spec:
   type: NodePort
   ports:
   - name: "port"
-    port: 8001
+    port: 8000
     targetPort: 8000
   selector:
     io.kompose.service: mongoapi

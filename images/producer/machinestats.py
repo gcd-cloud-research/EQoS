@@ -30,9 +30,9 @@ def get_stats(stats):
 
 def get_usage():
     try:
-        cr = requests.get("http://monitor:8080/api/v1.3/containers")
+        cr = requests.get("http://monitor:8000/api/v1.3/containers")
         cjson = cr.json()
-        mr = requests.get("http://monitor:8080/api/v1.3/machine")
+        mr = requests.get("http://monitor:8000/api/v1.3/machine")
         mjson = mr.json()
     except:
         return (0, 100, 100)

@@ -10,8 +10,8 @@ metadata:
   name: lam
 spec:
   ports:
-  - name: "8080"
-    port: 8080
+  - name: "8000"
+    port: 8000
     targetPort: 80
   selector:
     io.kompose.service: lam

@@ -21,7 +21,7 @@ def stats():
 
 
 @app.route('/routine', methods=['GET', 'POST'])
-def new_python():
+def new_routine():
     if request.method == 'POST':
         if 'program' not in request.files:
             abort(400)

@@ -7,8 +7,9 @@ PENDING_DIR=$BASE_DIR/pending
 TEMPLATE_DIR=$BASE_DIR/routinetemplate
 ROUTINE_DIR=$BASE_DIR/routines
 
-[ ! -d $PENDING_DIR ] && mkdir -p $PENDING_DIR
-[ ! -d $TEMPLATE_DIR ] && exit 1
+[ ! -d $TEMPLATE_DIR ] && echo "Template directory not found. Exiting" && exit 1
+[ ! -d $PENDING_DIR ] && echo "Pending directory not found. Creating" && mkdir -p $PENDING_DIR
+[ ! -d $ROUTINE_DIR ] && echo "Routine directory not found. Creating" && mkdir -p $ROUTINE_DIR
 
 count=0
 while true; do
@@ -23,6 +24,8 @@ while true; do
       continue
     fi
 
+    echo "Pending job found: $line. Preparing..."
+
     extension=$(echo "$line" | awk -F. '{ print $2 }')
 
     # Create new object in db
@@ -36,16 +39,19 @@ while true; do
 
     # Build image
     docker build "$ROUTINE_DIR/$imagename" -t "$imagename"
+    echo "Image $imagename built"
 
     # Prepare yaml
     sed -e "s/routinename/$line/" -e "s/imagename/$imagename/" -e "s/params/\"$imagename\", \"$extension\"/" "$TEMPLATE_DIR/routine.yaml" > "$ROUTINE_DIR/$imagename.yaml"
 
     # Schedule job
     kubectl apply -f "$ROUTINE_DIR/$imagename.yaml"
+    echo "Job $imagename.yaml scheduled"
 
     # Cleanup
-    rm -r "$ROUTINE_DIR/$imagename"
-    rm "$ROUTINE_DIR/$imagename.yaml"
+    rm -rf "$ROUTINE_DIR/$imagename"
+    rm -f "$ROUTINE_DIR/$imagename.yaml"
+    echo "Cleanup finished"
   done
 
   sleep $pauseTime
