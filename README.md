@@ -88,3 +88,11 @@ Utilitzar màquina a OpenNebula per fer la ETL amb Pentaho. Crear arxiu amb Acce
 ### Anotacions
 
 Amb el servei muntat sobre Kubernetes i Minikube, cal carregar les images locals a Minikube abans d'engegar els Deployments.
+
+## 23/12 ()
+
+### Tasques
+
+* Llegir articles, cercar articles relacionats
+* Automatitzar ETL
+* Pàgina per creació de rutines, admin (visualització de recursos, tasques pendents i acabades). React?
