@@ -123,3 +123,10 @@ Es pot canviar el directori de docker, pero no el de les imatges sol https://for
 * Demanar al Lluís més quota i ampliar slaves
 * Per què Docker no arrenca automàticament?
 * Copiar imatges al public i fer build
+
+## ??
+
+### Tasques
+
+* Acabar de llegir articles
+* Preparar Docker registry

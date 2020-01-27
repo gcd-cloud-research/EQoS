@@ -36,6 +36,6 @@ spec:
       restartPolicy: Always
       volumes:
       - name: registry-claim0
-        persistentVolumeClaim:
-          claimName: registry-claim0
+        hostPath:
+          path: /mnt/public/registry
 status: {}
