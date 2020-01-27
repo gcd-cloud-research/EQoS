@@ -96,3 +96,30 @@ Amb el servei muntat sobre Kubernetes i Minikube, cal carregar les images locals
 * Llegir articles, cercar articles relacionats
 * Automatitzar ETL
 * Pàgina per creació de rutines, admin (visualització de recursos, tasques pendents i acabades). React?
+
+## 15/01 ()
+
+Preparem les VM a OpenNebula per acollir Rancher i Kubernetes. Crearem els microserveis directament sobre Rancher. Hi haurà un Master (només dedicat a administració) i tres hosts. El Jordi ha fet un script per fer setup dels hosts i afegir-hi el plugin de Rancher amb OpenNebula.
+
+Farem un disc virtual a OpenNebula amb NFS (gestionat pel Master). Contindrà les dades i les rutines pendents. Com que estarà muntat a tots els hosts, qualsevol podrà fer build de les imatges o la ETL. (les imatges s'emmagatzemen al disc virtual també?)
+
+### Tasques
+
+* Acabar de llegir articles
+* Automatització ETL (quan tinguem les dades, pero ja es pot fer el script)
+* Omplir el disc públic i el privat (encriptar-lo, https://guardianproject.info/archive/luks/)
+* Resoldre problema CORS (ho mira el Jordi)
+* Engegar els serveis sobre Rancher i OpenNebula
+* Configurar NFS al Master en un contenidor
+
+## 21/01
+
+Es pot canviar el directori de docker, pero no el de les imatges sol https://forums.docker.com/t/how-to-change-var-lib-docker-directory-with-overlay2/43620/9
+
+### Tasques
+
+* Acabar de llegir articles
+* Per què NFS només comparteix el directori arrel?
+* Demanar al Lluís més quota i ampliar slaves
+* Per què Docker no arrenca automàticament?
+* Copiar imatges al public i fer build

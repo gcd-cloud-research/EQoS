@@ -2,10 +2,13 @@
 pauseTime=1 # Time between each check for pending routines
 prunePeriod=100 # Number of checks between each image prune
 
-BASE_DIR=$(pwd)
-PENDING_DIR=$BASE_DIR/pending
-TEMPLATE_DIR=$BASE_DIR/routinetemplate
-ROUTINE_DIR=$BASE_DIR/routines
+PUBLIC_DIR=/mnt/public
+PENDING_DIR=$PUBLIC_DIR/pending
+TEMPLATE_DIR=$PUBLIC_DIR/routinetemplate
+ROUTINE_DIR=$PUBLIC_DIR/routines
+
+PRIVATE_DIR=/mnt/private
+DB_DIR=$PRIVATE_DIR/dbutils
 
 [ ! -d $TEMPLATE_DIR ] && echo "Template directory not found. Exiting" && exit 1
 [ ! -d $PENDING_DIR ] && echo "Pending directory not found. Creating" && mkdir -p $PENDING_DIR
@@ -29,12 +32,12 @@ while true; do
     extension=$(echo "$line" | awk -F. '{ print $2 }')
 
     # Create new object in db
-    imagename=$(python dbutils/initelem.py "$line" "dbutils/config.json")
+    imagename=$(python "$DB_DIR/initelem.py" "$line" "$DB_DIR/config.json")
     echo "$imagename $line"
 
     # Create and fill directory for building image
     cp -r $TEMPLATE_DIR "$ROUTINE_DIR/$imagename"
-    cp "dbutils/config.json" "$ROUTINE_DIR/$imagename/config.json"
+    cp "$DB_DIR/config.json" "$ROUTINE_DIR/$imagename/config.json"
     mv "$PENDING_DIR/$line" "$ROUTINE_DIR/$imagename/worker.$extension"
 
     # Build image

@@ -38,6 +38,6 @@ spec:
       volumes:
       - name: producer-claim0
         hostPath:
-          path: /home/docker/pending
+          path: /mnt/public/pending
           type: DirectoryOrCreate
 status: {}

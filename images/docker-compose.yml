@@ -48,9 +48,21 @@ services:
   monitor:
     image: google/cadvisor
     ports:
-      - 8002:8080
+      - 8003:8080
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+
+  registry:
+    image: registry
+    ports:
+      - 8000:5000
+    volumes:
+      - /mnt/public/registry:/var/lib/registry
+
+  frontend:
+    image: frontend
+    ports:
+      - 8002:3000
