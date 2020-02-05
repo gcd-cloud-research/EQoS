@@ -9,6 +9,7 @@ metadata:
     io.kompose.service: registry
   name: registry
 spec:
+  type: NodePort
   ports:
   - name: "8000"
     port: 8000

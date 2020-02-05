@@ -124,9 +124,25 @@ Es pot canviar el directori de docker, pero no el de les imatges sol https://for
 * Per què Docker no arrenca automàticament?
 * Copiar imatges al public i fer build
 
-## ??
+## 29/01
+
+NFS necessita l'opció crossmnt per a que tots els discs muntats al directori compartit també es comparteixin.
+
+Docker necessitava els init scripts per arrencar automàticament. S'han copiat del Master, que sí que els tenia, als slaves.
+
+Cada host de Kubernetes utilitza les seves imatges locals per a engegar pods. Per tant, hauríem de fer build de totes les imatges a tots els hosts per assegurar que es trobin les imatges a l'engegar. Com a alternativa, crearem un contenidor amb un Docker registry amb les nostres imatges. Aquest contenidor les guardarà en un volum sobre el disc públic.
+
+El registre tindrà un servei que l'exposarà a l'exterior, i controlarem l'accés amb LDAP i Rancher.
 
 ### Tasques
 
 * Acabar de llegir articles
 * Preparar Docker registry
+* Començar a escriure arquitectura i serveis (la genèrica, no la de eHQoS)
+* Tests: dissenyar, e.g. Python (no cal que tinguin a veure amb el propòsit de l'aplicació)
+	* Intensiu CPU
+	* Intensiu memòria
+	* Mixte
+	* Parametres:
+		* Temps de resposta
+		* Eficiència
