@@ -25,9 +25,8 @@ spec:
         io.kompose.service: frontend
     spec:
       containers:
-      - image: frontend
+      - image: registry:5000/frontend
         name: frontend
-        imagePullPolicy: Never
         ports:
         - containerPort: 3000
         resources: {}

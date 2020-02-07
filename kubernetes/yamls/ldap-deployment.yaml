@@ -42,9 +42,9 @@ spec:
       restartPolicy: Always
       volumes:
       - name: ldap-claim0
-        persistentVolumeClaim:
-          claimName: ldap-claim0
+        hostPath:
+          path: /mnt/private/ldap/ldap
       - name: ldap-claim1
-        persistentVolumeClaim:
-          claimName: ldap-claim1
+        hostPath:
+          path: /mnt/private/ldap/slapd.conf
 status: {}

@@ -25,9 +25,8 @@ spec:
         io.kompose.service: producer
     spec:
       containers:
-      - image: producer
+      - image: registry:5000/producer
         name: producer
-        imagePullPolicy: Never
         ports:
         - containerPort: 5000
         resources: {}

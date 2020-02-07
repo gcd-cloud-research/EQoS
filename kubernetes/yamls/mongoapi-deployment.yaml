@@ -24,9 +24,8 @@ spec:
         io.kompose.service: mongoapi
     spec:
       containers:
-      - image: mongoapi
+      - image: registry:5000/mongoapi
         name: mongoapi
-        imagePullPolicy: Never
         ports:
         - containerPort: 8000
         resources: {}
