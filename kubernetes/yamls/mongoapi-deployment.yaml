@@ -24,7 +24,7 @@ spec:
         io.kompose.service: mongoapi
     spec:
       containers:
-      - image: registry:5000/mongoapi
+      - image: 192.168.101.76:5000/mongoapi
         name: mongoapi
         ports:
         - containerPort: 8000

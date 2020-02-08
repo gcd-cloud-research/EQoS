@@ -24,7 +24,7 @@ spec:
         io.kompose.service: shinyproxy
     spec:
       containers:
-      - image: registry:5000/shinyproxy
+      - image: 192.168.101.76:5000/shinyproxy
         name: shinyproxy
         ports:
         - containerPort: 8080
