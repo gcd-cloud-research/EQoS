@@ -146,3 +146,19 @@ El registre tindrà un servei que l'exposarà a l'exterior, i controlarem l'acc�
 	* Parametres:
 		* Temps de resposta
 		* Eficiència
+
+## 12/02
+
+Rancher ha deixat de funcionar. Passem a Kubernetes sol.
+
+## Tasques
+
+* Acabar de llegir articles
+* Fer deployment amb Kubernetes
+* Tests: dissenyar, e.g. Python (no cal que tinguin a veure amb el propòsit de l'aplicació)
+	* Intensiu CPU
+	* Intensiu memòria
+	* Mixte
+	* Parametres:
+		* Temps de resposta
+		* Eficiència
