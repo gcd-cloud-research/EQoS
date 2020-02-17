@@ -16,7 +16,7 @@ with open(sys.argv[2]) as fh:
         sys.exit(1)
 
 client = pymongo.MongoClient(
-    "mongodb://%s:%s@localhost:27017" %
+    "mongodb://%s:%s@mongo:27017" %
     (conf['mongo_user'], conf['mongo_pass'])
 )
 result = client.ehqos.tasks.insert_one({
