@@ -41,7 +41,7 @@ while true; do
     mv "$PENDING_DIR/$line" "$ROUTINE_DIR/$imagename/worker.$extension"
 
     # Build image
-    docker build "$ROUTINE_DIR/$imagename" -t "$imagename"
+    docker build "$ROUTINE_DIR/$imagename" -t "$REGISTRY/$imagename"
     echo "Image $imagename built"
 
     # Prepare yaml
