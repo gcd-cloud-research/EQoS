@@ -9,7 +9,7 @@ CORS(app)
 
 @app.route('/test')
 def test():
-    return "The service is up"
+    return "Service Producer working"
 
 
 @app.route('/stats')

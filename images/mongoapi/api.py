@@ -2,6 +2,7 @@ import falcon
 import pymongo
 import json
 import sys
+from datetime import datetime
 from bson.objectid import ObjectId
 
 with open("config.json") as fh:
@@ -21,7 +22,7 @@ class Test:
 
     def on_get(self, req, resp):
         """Return OK if the API is running."""
-        resp.body = "OK\n"
+        resp.body = "Service Mongo API working\n"
 
 
 class Query:
@@ -42,7 +43,6 @@ class Query:
         if 'id' in query_params:
             query_params['_id'] = ObjectId(query_params['id'])
             del query_params['id']
-        print(query_params)
 
         if collection in CLIENT.ehqos.list_collection_names():
             query_result = CLIENT.ehqos[collection].find(query_params)
@@ -62,9 +62,41 @@ class Query:
         resp.body = json.dumps(CLIENT.ehqos.list_collection_names())
 
 
+class Routine:
+    def on_post_create(self, req, resp):
+        try:
+            data = json.load(req.bounded_stream)
+        except json.JSONDecodeError:
+            resp.status = falcon.HTTP_400
+            return
+
+        result = CLIENT.ehqos.tasks.insert_one({
+            'name': data["name"],
+            'status': 'PENDING',
+            'issuer': data["issuer"],
+            'start_time': datetime.utcnow().isoformat()
+        })
+        resp.body = json.dumps({"id": str(result.inserted_id)})
+
+    def on_post_update(self, req, resp, routine_id):
+        try:
+            data = json.load(req.bounded_stream)
+        except json.JSONDecodeError:
+            resp.status = falcon.HTTP_400
+            return
+
+        if data['status'] == 'SUCCESS' or data["status"] == 'FAILURE':
+            data['end_time'] = datetime.utcnow().isoformat()
+
+        CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
+
+
 api = falcon.API()
 testResource = Test()
 queryResource = Query()
+routineResource = Routine()
 api.add_route('/test', testResource)
 api.add_route('/query/{collection}', queryResource)
 api.add_route('/query', queryResource, suffix="all")
+api.add_route('/routine/new', routineResource, suffix="create")
+api.add_route('/routine/{routine_id}', routineResource, suffix="update")

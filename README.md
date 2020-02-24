@@ -162,3 +162,15 @@ Rancher ha deixat de funcionar. Passem a Kubernetes sol.
 	* Parametres:
 		* Temps de resposta
 		* Eficiència
+
+## 21/02
+
+L'aplicació ja està corrent sobre OpenNebula + Kubernetes.
+
+### Tasques
+
+* Acabar de llegir articles
+* Tests
+* Crear API gateway en una VM amb Ambassador
+* Arreglar diagrama de l'arquitectura
+* Afegir endpoint a mongoapi que crei un element (el que fa initelem.py)

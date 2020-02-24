@@ -1,37 +1,25 @@
 #!/bin/python
 
-import pymongo
-from datetime import datetime
+from http.client import HTTPConnection
 import sys
 import json
 import os
-from bson.objectid import ObjectId
 
-CONF = "config.json"
-LOG = "log.log"
-RES = "results.json"
 
 def exists(path):
     return os.path.isfile("./" + path)
 
-# Get configuration
-if (not exists(CONF)):
-    sys.exit(1)
 
-with open(CONF) as fh:
-    conf = json.load(fh)
-    if 'mongo_user' not in conf or 'mongo_pass' not in conf:
-        sys.exit(1)
+LOG = "log.log"
+RES = "results.json"
+headers = {'Content-Type': 'application/json'}
+conn = HTTPConnection('mongoapi:8000')
 
-id = ObjectId(sys.argv[1])
+
+routine_id = sys.argv[1]
 
 # Set routine as RUNNING
-client = pymongo.MongoClient(
-    "mongodb://%s:%s@mongo:27017" % (conf['mongo_user'], conf['mongo_pass'])
-)
-client.ehqos.tasks.update_one({"_id": id}, {"$set": {
-    'status': 'RUNNING'
-}})
+conn.request('POST', '/routine' + routine_id, json.dumps({'status': 'RUNNING'}), headers)
 
 # Run routine
 extension = sys.argv[2]
@@ -56,9 +44,8 @@ if exists(RES):
         results = json.load(fh)
 
 # Save results in database
-client.ehqos.tasks.update_one({"_id": id}, {"$set": {
+conn.request('POST', '/routine' + routine_id, json.dumps({
     'status': 'SUCCESS' if status == 0 else 'FAILURE',
-    'end_time': datetime.utcnow().isoformat(),
     'logs': log,
     'results': results
-}})
+}), headers)
