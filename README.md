@@ -174,3 +174,16 @@ L'aplicació ja està corrent sobre OpenNebula + Kubernetes.
 * Crear API gateway en una VM amb Ambassador
 * Arreglar diagrama de l'arquitectura
 * Afegir endpoint a mongoapi que crei un element (el que fa initelem.py)
+
+## 26/02
+
+Utilitzar un LoadBalancer seria un marron perquè hem de demanar IPs a una empresa externa. Per tant, farem la gateway en un contenidor al Master, que utilitzarà les utilitats de kubernetes per descobrir serveis (potser cal fer un volum on es guardi tota aquesta informació). La IP de Master serà fixa.
+
+Un cop acabat, replicarem el Master per si caigués.
+
+### Tasques
+
+* Acabar de llegir articles
+* Tests
+* Arreglar diagrama de l'arquitectura
+* Afegir contenidor API gateway al Master

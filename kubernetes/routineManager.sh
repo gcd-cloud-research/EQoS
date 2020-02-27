@@ -9,10 +9,12 @@ ROUTINE_DIR=$PUBLIC_DIR/routines
 
 PRIVATE_DIR=/mnt/private
 DB_DIR=$PRIVATE_DIR/dbutils
+KUBE_DATA_DIR=$PRIVATE_DIR/kubedata
 
 [ ! -d $TEMPLATE_DIR ] && echo "Template directory not found. Exiting" && exit 1
 [ ! -d $PENDING_DIR ] && echo "Pending directory not found. Creating" && mkdir -p $PENDING_DIR
 [ ! -d $ROUTINE_DIR ] && echo "Routine directory not found. Creating" && mkdir -p $ROUTINE_DIR
+[ ! -d $KUBE_DATA_DIR/tmp ] && echo "Kube data directory not found. Creating" && mkdir -p $KUBE_DATA_DIR/tmp
 
 count=0
 while true; do
@@ -20,9 +22,9 @@ while true; do
     docker image prune -f
     count=0
   fi
-  count=$(($count + 1))
+  count=$((count + 1))
 
-  for line in "$(ls $PENDING_DIR)"; do
+  for line in $(ls $PENDING_DIR); do
     if [ -z "$line" ]; then
       continue
     fi
@@ -56,6 +58,23 @@ while true; do
     rm -f "$ROUTINE_DIR/$imagename.yaml"
     echo "Cleanup finished"
   done
+
+  deployments=$(kubectl get deployments | awk '{if ($1 != "NAME") print $1}')
+  for dep in $deployments; do
+    pods=$(kubectl get pods | grep "$dep" | awk '{if ($2 !~ "^0/" && $1 != "NAME") print $1}')
+    i=0
+    for pod in $pods; do
+      ip=$(kubectl describe pod "$pod" | grep "Node:" | awk 'BEGIN{FS="/"}{print $2}')
+      port=$(kubectl get service "$dep" | awk '{if ($5 != "PORT(S)") print $5}' | awk 'BEGIN{FS=":"}{print $2}')
+      if [ ! -z "$port" ]; then
+        echo "$ip $port" > "$KUBE_DATA_DIR/tmp/$dep""_$i"
+      fi
+      i=$((i+1))
+    done
+  done
+
+  rm -f $KUBE_DATA_DIR/*
+  mv $KUBE_DATA_DIR/tmp/* $KUBE_DATA_DIR/
 
   sleep $pauseTime
 done
