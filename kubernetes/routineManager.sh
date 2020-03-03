@@ -59,6 +59,7 @@ while true; do
     echo "Cleanup finished"
   done
 
+  # Update available service list
   deployments=$(kubectl get deployments | awk '{if ($1 != "NAME") print $1}')
   for dep in $deployments; do
     pods=$(kubectl get pods | grep "$dep" | awk '{if ($2 !~ "^0/" && $1 != "NAME") print $1}')
