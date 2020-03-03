@@ -74,7 +74,7 @@ while true; do
     done
   done
 
-  rm -f $KUBE_DATA_DIR/*
+  rm -f $KUBE_DATA_DIR/* 2> /dev/null
   mv $KUBE_DATA_DIR/tmp/* $KUBE_DATA_DIR/
 
   sleep $pauseTime
