@@ -34,7 +34,7 @@ class Query:
         Filters are obtained by combining body and query parameters.
         Query parameters have precedence.
         """
-        body = req.bounded_stream.read()
+        body = req.media
         query_params = json.loads(body if body else "{}")
         for key, value in req.params.items():
             query_params[key] = value
@@ -89,25 +89,23 @@ class Routine:
 
 
 class Performance:
-    def on_get(self, req, resp):
-        pass
-
     def on_post(self, req, resp):
         data = req.media
         if data is None:
             resp.status = falcon.HTTP_400
             return
 
-        CLIENT.ehqos.performance.insert_one(data)
+        CLIENT.ehqos.performance.insert_many(data)
 
 
 api = falcon.API()
 testResource = Test()
 queryResource = Query()
 routineResource = Routine()
+performanceResource = Performance()
 api.add_route('/test', testResource)
 api.add_route('/query/{collection}', queryResource)
 api.add_route('/query', queryResource, suffix="all")
 api.add_route('/routine/new', routineResource, suffix="create")
 api.add_route('/routine/{routine_id}', routineResource, suffix="update")
-api.add_route('/performance', Performance())
+api.add_route('/performance', performanceResource)
