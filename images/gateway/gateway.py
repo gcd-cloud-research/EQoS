@@ -1,10 +1,27 @@
 import os
-import falcon
-import json
-from http.client import HTTPConnection
+from flask import Flask, request, abort
+import requests
+import re
 
 DATA_DIR = "/routing/"
-HEADERS = {'Content-Type': 'application/json'}
+
+ROUTE_MAP = {
+    'mongo': 'mongoapi',
+    'routine': 'producer'
+}
+
+ALLOWED_ROUTES = [
+    r'^/mongo/query',
+    r'^/routine$'
+]
+
+
+def is_allowed(route):
+    return len(
+        list(
+            filter(lambda r: re.match(r, route), ALLOWED_ROUTES)
+        )
+    ) > 0
 
 
 def parse_host(host_line):
@@ -25,31 +42,38 @@ def get_best_host(service_name):
     return best_host
 
 
-def on_request(req, resp):
-    try:
-        body = json.load(req.bounded_stream)
-    except json.JSONDecodeError:
-        body = {}
+app = Flask(__name__)
 
-    service = req.relative_uri.split("/")[1]
-    uri = "/".join(req.relative_uri.split("/")[2:])
 
-    host = get_best_host(service)
+@app.route('/')
+def on_request():
+    # Get desired service
+    service = request.script_root
+    mapped_service = ROUTE_MAP[service] if service in ROUTE_MAP else ''
+
+    if mapped_service == '':
+        return
+
+    if not is_allowed(request.path):
+        abort(401)
+        return
+
+    # Get appropriate worker for service
+    host = get_best_host(mapped_service)
     if host is None:
-        resp.status = falcon.HTTP_404
+        abort(503)
         return
 
-    conn = HTTPConnection(host)
-    conn.request(req.method, uri, body, HEADERS)
+    # Add files if necessary
+    files = {}
+    if 'program' in request.files:
+        files['program'] = request.files['program']
 
-    response = conn.getresponse()
-    print(response.getcode())
-    if response.getcode() != 200:
-        resp.status = falcon.HTTP_500
-        return
-    body = response.read().decode('utf-8')
-    resp.body = json.dumps(body)
+    # Route request
+    req = requests.request(request.method, 'http://' + host + request.full_path, data=request.get_json(), files=files)
+
+    # Process response
+    return req.json()
 
 
-api = falcon.API()
-api.add_sink(on_request, '/')
+app.run(debug=False, host='0.0.0.0')

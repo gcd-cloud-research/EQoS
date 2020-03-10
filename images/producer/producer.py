@@ -1,4 +1,3 @@
-import machinestats
 from flask import Flask, request, abort
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -9,37 +8,22 @@ CORS(app)
 
 @app.route('/test')
 def test():
-    return "Service Producer working"
+    return ''
 
 
-@app.route('/stats')
-def stats():
-    time, cpu, mem = machinestats.get_usage()
-    return {
-        'time': time,
-        'cpu': cpu,
-        'mem': mem
-    }
-
-
-@app.route('/routine', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/', methods=['POST'])
 def new_routine():
-    if request.method == 'OPTIONS':
-        return
-    elif request.method == 'POST':
-        if 'program' not in request.files:
-            abort(400)
+    if 'program' not in request.files:
+        abort(400)
 
-        f = request.files['program']
-        name = secure_filename(f.filename)
-        extension = name.split('.')[-1]
-        if extension not in ['py', 'r']:
-            abort(400)
+    f = request.files['program']
+    name = secure_filename(f.filename)
+    extension = name.split('.')[-1]
+    if extension not in ['py', 'r']:
+        abort(400)
 
-        f.save('/received/' + name)
-        return
-
-    return 'Submit a python or R script file with name "program"'
+    f.save('/received/' + name)
+    return ''
 
 
 if __name__ == '__main__':

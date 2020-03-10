@@ -21,8 +21,7 @@ class Test:
     """Endpoint for checking that service is up."""
 
     def on_get(self, req, resp):
-        """Return OK if the API is running."""
-        resp.body = "Service Mongo API working\n"
+        return
 
 
 class Query:
@@ -47,7 +46,7 @@ class Query:
         if collection in CLIENT.ehqos.list_collection_names():
             query_result = CLIENT.ehqos[collection].find(query_params)
         else:
-            resp.status = falcon.HTTP_400
+            resp.status = falcon.HTTP_404
             return
 
         body = []
@@ -64,9 +63,8 @@ class Query:
 
 class Routine:
     def on_post_create(self, req, resp):
-        try:
-            data = json.load(req.bounded_stream)
-        except json.JSONDecodeError:
+        data = req.media
+        if data is None:
             resp.status = falcon.HTTP_400
             return
 
@@ -79,9 +77,8 @@ class Routine:
         resp.body = json.dumps({"id": str(result.inserted_id)})
 
     def on_post_update(self, req, resp, routine_id):
-        try:
-            data = json.load(req.bounded_stream)
-        except json.JSONDecodeError:
+        data = req.media
+        if data is None:
             resp.status = falcon.HTTP_400
             return
 
@@ -89,6 +86,19 @@ class Routine:
             data['end_time'] = datetime.utcnow().isoformat()
 
         CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
+
+
+class Performance:
+    def on_get(self, req, resp):
+        pass
+
+    def on_post(self, req, resp):
+        data = req.media
+        if data is None:
+            resp.status = falcon.HTTP_400
+            return
+
+        CLIENT.ehqos.performance.insert_one(data)
 
 
 api = falcon.API()
@@ -100,3 +110,4 @@ api.add_route('/query/{collection}', queryResource)
 api.add_route('/query', queryResource, suffix="all")
 api.add_route('/routine/new', routineResource, suffix="create")
 api.add_route('/routine/{routine_id}', routineResource, suffix="update")
+api.add_route('/performance', Performance())

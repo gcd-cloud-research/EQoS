@@ -187,3 +187,14 @@ Un cop acabat, replicarem el Master per si caigués.
 * Tests
 * Arreglar diagrama de l'arquitectura
 * Afegir contenidor API gateway al Master
+
+## 04/03
+
+### Tasques
+
+* Acabar de llegir articles
+* Tests (CPU, memòria, disc (se li pot dir al mongo_write que faci l'escriptura a disc a saco?))
+* Testejar gateway
+* Endpoint de mongoapi per pujar dades de performance
+* Ficar cAdvisor als tres nodes amb ReplicaSet de manera que es recullin dades de cadascun dels nodes periòdicament i es pugin a Mongo.
+* Gràfiques amb ShinyProxy?

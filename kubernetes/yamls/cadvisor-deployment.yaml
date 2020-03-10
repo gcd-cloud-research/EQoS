@@ -6,12 +6,12 @@ metadata:
     kompose.version: 1.19.0 (f63a961c)
   creationTimestamp: null
   labels:
-    io.kompose.service: monitor
-  name: monitor
+    io.kompose.service: cadvisor
+  name: cadvisor
 spec:
   selector:
     matchLabels:
-      io.kompose.service: monitor
+      io.kompose.service: cadvisor
   replicas: 1
   strategy:
     type: Recreate
@@ -22,38 +22,38 @@ spec:
         kompose.version: 1.19.0 (f63a961c)
       creationTimestamp: null
       labels:
-        io.kompose.service: monitor
+        io.kompose.service: cadvisor
     spec:
       containers:
       - image: google/cadvisor
-        name: monitor
+        name: cadvisor
         ports:
         - containerPort: 8080
         resources: {}
         volumeMounts:
         - mountPath: /rootfs
-          name: monitor-claim0
+          name: cadvisor-claim0
           readOnly: true
         - mountPath: /var/run
-          name: monitor-claim1
+          name: cadvisor-claim1
         - mountPath: /sys
-          name: monitor-claim2
+          name: cadvisor-claim2
           readOnly: true
         - mountPath: /var/lib/docker
-          name: monitor-claim3
+          name: cadvisor-claim3
           readOnly: true
       restartPolicy: Always
       volumes:
-      - name: monitor-claim0
+      - name: cadvisor-claim0
         hostPath:
           path: /
-      - name: monitor-claim1
+      - name: cadvisor-claim1
         hostPath:
           path: /var/run
-      - name: monitor-claim2
+      - name: cadvisor-claim2
         hostPath:
           path: /sys
-      - name: monitor-claim3
+      - name: cadvisor-claim3
         hostPath:
           path: /var/lib/docker
 status: {}
