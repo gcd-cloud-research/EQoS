@@ -1,6 +1,9 @@
 FROM python:3.7
 
+WORKDIR /
+ENV PYTHONPATH '/usr/local/lib/python3.7/site-packages'
 COPY requirements.txt /
 RUN pip install -r requirements.txt
-COPY monitor.py /
+
+COPY *.py /
 CMD ["python", "monitor.py"]

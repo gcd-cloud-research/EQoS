@@ -1,7 +1,10 @@
-#!/usr/bin/python3
+import sys
 from datetime import datetime
 from calendar import timegm
 import requests
+
+
+URL = 'http://cadvisor:8080/api/v1.3/'
 
 
 def nanosecs(ts):
@@ -14,59 +17,83 @@ def nanosecs(ts):
     return seconds * 10 ** 9
 
 
-def get_stats(stats):
-    return stats['timestamp'], stats['cpu']['usage']['total'], stats['memory']['usage']
+def get_stats(entry):
+    return entry['timestamp'], entry['cpu']['usage']['total'], entry['memory']['usage']
 
 
 def get_usage(part_stats, machine_stats):
     # Extract relevant data
-    max_cores, max_mem = machine_stats['num_cores'], machine_stats['memory_capacity']
-    time, cpu, mem = get_stats(part_stats['stats'][-1])  # TODO: get data from specific timestamp, not last
-    prev_time, prev_cpu, _ = get_stats(part_stats['stats'][-2])
+    part_stats = list(map(lambda entry: get_stats(entry), part_stats['stats']))
+    usages = []
+    for i in range(1, len(part_stats)):
+        time, cpu, mem = part_stats[i]
+        prev_time, prev_cpu, _ = part_stats[i-1]
 
-    # Calculate CPU and memory usage
-    cpu_usage = 0
-    if time != prev_time:
-        cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
-    cpu_percent = float(cpu_usage) / float(max_cores) * 100
-    mem_percent = float(mem) / float(max_mem) * 100
+        # Calculate CPU and memory usage
+        cpu_usage = 0
+        if time != prev_time:
+            cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
+        cpu_percent = float(cpu_usage) / float(machine_stats["cores"]) * 100
+        mem_percent = float(mem) / float(machine_stats["memory"]) * 100
+        usages.append({
+            "time": time,
+            "cpu": cpu_percent,
+            "memory": mem_percent
+        })
+    return usages
+
+
+def get_machine_usage(machine_specs):
+    try:
+        cjson = requests.get(URL + "containers").json()
+    except requests.ConnectionError:
+        return None
+    usage = get_usage(cjson, machine_specs)
+    with open("hostname") as fh:  # TODO: Create Kubernetes yaml with volume at /etc/hostname
+        hostname = fh.read().strip()
+    return [{
+        "host": hostname,
+        "usage": usage
+    }]
+
+
+def get_container_usage(machine_specs):
+    try:
+        cjson = requests.get(URL + "docker").json()
+    except requests.ConnectionError:
+        return None
+
+    usages = []
+    for container_id in cjson.keys():
+        usage = get_usage(cjson[container_id], machine_specs)
+        usages.append({
+            "container": container_id,
+            "usage": usage
+        })
+    return usages
+
+
+def get_machine_specs():
+    try:
+        machine_json = requests.get(URL + "machine").json()
+    except requests.ConnectionError:
+        return None
     return {
-        "time": time,
-        "cpu": cpu_percent,
-        "memory": mem_percent
+        "cores": machine_json['num_cores'],
+        "memory": machine_json['memory_capacity']
     }
 
 
-def get_machine_usage():
-    try:
-        cjson = requests.get("http://localhost:8080/api/v1.3/containers").json()
-        mjson = requests.get("http://localhost:8080/api/v1.3/machine").json()
-    except:
-        return None
-    return get_usage(cjson, mjson)
-
-
-def get_container_usage():
-    try:
-        cjson = requests.get("http://localhost:8080/api/v1.3/docker/").json()
-        mjson = requests.get("http://localhost:8080/api/v1.3/machine").json()
-    except:
-        return None
-
-    def make_usage_object(entry):
-        usage = get_usage(entry, mjson)
-        usage["container"] = entry["id"]
-        return usage
-
-    return list(map(lambda key: make_usage_object(cjson[key]), cjson.keys()))
-
-
 if __name__ == "__main__":
-    host_performance = get_machine_usage()
-    # host_performance["host"] = sys.argv[1] TODO: add host field
-    # requests.post("http://mongoapi:8000/performance", data=host_performance)
-    print(host_performance)
+    specs = get_machine_specs()
+    if not specs:
+        print("Specs not available")
+        sys.exit()
 
-    container_performance = get_container_usage()
-    # requests.post("http://mongoapi:8000/performance", data=container_performance)
-    print(container_performance)
+    host_performance = get_machine_usage(specs)
+    if host_performance:
+        requests.post("http://mongoapi:8000/performance", data=host_performance)
+
+    container_performance = get_container_usage(specs)
+    if container_performance:
+        requests.post("http://mongoapi:8000/performance", data=container_performance)

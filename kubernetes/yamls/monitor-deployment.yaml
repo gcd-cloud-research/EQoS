@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/1/./kompose-linux-amd64 convert -f ../../docker-compose.yml
+    kompose.version: 1.18.0 (06a2e56)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: monitor
+  name: monitor
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: monitor
+    spec:
+      containers:
+      - image: 192.168.101.76:5000/monitor
+        name: monitor
+        resources: {}
+        volumeMounts:
+        - mountPath: /hostname
+          name: monitor-claim0
+      restartPolicy: Always
+      volumes:
+      - name: monitor-claim0
+        hostPath:
+          path: /etc/hostname
+status: {}

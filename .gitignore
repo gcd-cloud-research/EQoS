@@ -4,6 +4,7 @@ rsa*
 misc*
 **/test.py
 **/env
+**/venv
 **/config.*
 **/__pycache__
 **/.idea
