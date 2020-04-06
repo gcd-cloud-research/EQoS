@@ -1,5 +1,5 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: DaemonSet
 metadata:
   annotations:
     kompose.cmd: /snap/kompose/1/./kompose-linux-amd64 convert -f ../../docker-compose.yml
@@ -9,16 +9,35 @@ metadata:
     io.kompose.service: monitor
   name: monitor
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
+  selector:
+    matchLabels:
+      io.kompose.service: monitor
   template:
     metadata:
       creationTimestamp: null
       labels:
         io.kompose.service: monitor
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
+      - image: google/cadvisor
+        name: cadvisor
+        ports:
+        - containerPort: 8080
+        resources: {}
+        volumeMounts:
+        - mountPath: /rootfs
+          name: cadvisor-claim0
+          readOnly: true
+        - mountPath: /var/run
+          name: cadvisor-claim1
+        - mountPath: /sys
+          name: cadvisor-claim2
+          readOnly: true
+        - mountPath: /var/lib/docker
+          name: cadvisor-claim3
+          readOnly: true
       - image: 192.168.101.76:5000/monitor
         name: monitor
         resources: {}
@@ -30,4 +49,16 @@ spec:
       - name: monitor-claim0
         hostPath:
           path: /etc/hostname
+      - name: cadvisor-claim0
+        hostPath:
+          path: /
+      - name: cadvisor-claim1
+        hostPath:
+          path: /var/run
+      - name: cadvisor-claim2
+        hostPath:
+          path: /sys
+      - name: cadvisor-claim3
+        hostPath:
+          path: /var/lib/docker
 status: {}

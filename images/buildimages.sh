@@ -20,8 +20,8 @@ for dir in $(ls -F | grep '\/$'); do
     fi
   fi
 done
-echo "***** Images built, cleaning *****"
 if [ ! -z "$registry" ]; then
+  echo "***** Images built, cleaning *****"
 	docker image prune -f
 fi
 echo "***** Done, exiting *****"

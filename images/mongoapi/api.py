@@ -34,17 +34,14 @@ class Query:
         Filters are obtained by combining body and query parameters.
         Query parameters have precedence.
         """
-        body = req.media
-        query_params = json.loads(body if body else "{}")
-        for key, value in req.params.items():
-            query_params[key] = value
+        query = req.media if req.media is not None else {}
 
-        if 'id' in query_params:
-            query_params['_id'] = ObjectId(query_params['id'])
-            del query_params['id']
+        if 'id' in query:
+            query['_id'] = ObjectId(query['id'])
+            del query['id']
 
         if collection in CLIENT.ehqos.list_collection_names():
-            query_result = CLIENT.ehqos[collection].find(query_params)
+            query_result = CLIENT.ehqos[collection].find(query)
         else:
             resp.status = falcon.HTTP_404
             return
@@ -98,14 +95,22 @@ class Performance:
         CLIENT.ehqos.performance.insert_many(data)
 
 
+class Delete:
+    def on_post(self, req, resp):
+        for collection in CLIENT.ehqos.list_collection_names():
+            CLIENT.ehqos.drop_collection(collection)
+
+
 api = falcon.API()
 testResource = Test()
 queryResource = Query()
 routineResource = Routine()
 performanceResource = Performance()
+deleteResource = Delete()
 api.add_route('/test', testResource)
 api.add_route('/query/{collection}', queryResource)
 api.add_route('/query', queryResource, suffix="all")
 api.add_route('/routine/new', routineResource, suffix="create")
 api.add_route('/routine/{routine_id}', routineResource, suffix="update")
 api.add_route('/performance', performanceResource)
+api.add_route('/delete', deleteResource)
