@@ -1,9 +1,9 @@
 #!/bin/python
 
-from http.client import HTTPConnection
 import sys
 import json
 import os
+import requests
 
 
 def exists(path):
@@ -12,14 +12,10 @@ def exists(path):
 
 LOG = "log.log"
 RES = "results.json"
-headers = {'Content-Type': 'application/json'}
-conn = HTTPConnection('mongoapi:8000')
-
-
-routine_id = sys.argv[1]
+URL = 'http://mongoapi:8000/routine/' + sys.argv[1]
 
 # Set routine as RUNNING
-conn.request('POST', '/routine' + routine_id, json.dumps({'status': 'RUNNING'}), headers)
+requests.post(URL, data=json.dumps({'status': 'RUNNING'}))
 
 # Run routine
 extension = sys.argv[2]
@@ -44,8 +40,8 @@ if exists(RES):
         results = json.load(fh)
 
 # Save results in database
-conn.request('POST', '/routine' + routine_id, json.dumps({
+requests.post(URL, data=json.dumps({
     'status': 'SUCCESS' if status == 0 else 'FAILURE',
     'logs': log,
     'results': results
-}), headers)
+}))

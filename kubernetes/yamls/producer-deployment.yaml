@@ -31,12 +31,11 @@ spec:
         - containerPort: 5000
         resources: {}
         volumeMounts:
-        - mountPath: /received/
+        - mountPath: /var/run/docker.sock
           name: producer-claim0
       restartPolicy: Always
       volumes:
       - name: producer-claim0
         hostPath:
-          path: /mnt/public/pending
-          type: DirectoryOrCreate
+          path: /var/run/docker.sock
 status: {}
