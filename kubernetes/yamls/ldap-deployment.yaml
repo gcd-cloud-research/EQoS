@@ -12,7 +12,6 @@ spec:
   selector:
     matchLabels:
       io.kompose.service: ldap
-  replicas: 1
   strategy:
     type: Recreate
   template:

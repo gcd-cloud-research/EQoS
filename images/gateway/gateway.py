@@ -1,9 +1,11 @@
-import os
+""""This service runs outside of the cluster on net=host or a mapped port."""
 from flask import Flask, request, abort
 import requests
 import re
+from kubernetes import client, config
 
-DATA_DIR = "/routing/"
+config.load_kube_config()  # TODO: give the gateway the appropriate files to authenticate itself
+kube_api = client.ApiClient()
 
 ROUTE_MAP = {
     'mongo': 'mongoapi',
@@ -24,22 +26,14 @@ def is_allowed(route):
     ) > 0
 
 
-def parse_host(host_line):
-    parts = host_line.split()
-    host = parts[0]
-    port = parts[1].split("/")[0]
-    return "%s:%s" % (host, port)
-
-
 def get_best_host(service_name):
-    candidates = list(filter(lambda candidate: service_name in candidate, os.listdir(DATA_DIR)))
-    if len(candidates) == 0:
-        return None
-    best = candidates[0]
+    """Request best worker (host:port) to QoS service."""
+    res = requests.get('/qos:8000/worker?service=%s' % service_name)
+    if res.status_code != 200:
+        return res.status_code, None
 
-    with open(DATA_DIR + best) as fh:
-        best_host = parse_host(fh.read())
-    return best_host
+    j = res.json()
+    return res.status_code, '%s:%s' % (j['host'], j['port'])
 
 
 app = Flask(__name__)
@@ -59,9 +53,9 @@ def on_request():
         return
 
     # Get appropriate worker for service
-    host = get_best_host(mapped_service)
-    if host is None:
-        abort(503)
+    status, host = get_best_host(mapped_service)
+    if status != 200:
+        abort(status)
         return
 
     # Add files if necessary

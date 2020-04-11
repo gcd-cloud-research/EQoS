@@ -12,7 +12,6 @@ spec:
   selector:
     matchLabels:
       io.kompose.service: mongoapi
-  replicas: 1
   strategy: {}
   template:
     metadata:

@@ -11,7 +11,7 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - name: "8002"
+  - name: "serviceport"
     port: 8000
     targetPort: 3000
   selector:
