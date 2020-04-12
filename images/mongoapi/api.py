@@ -34,7 +34,7 @@ class Query:
         Filters are obtained by combining body and query parameters.
         Query parameters have precedence.
         """
-        query = req.media if req.media is not None else {}
+        query = req.media if req.media else {}
 
         if 'id' in query:
             query['_id'] = ObjectId(query['id'])
@@ -56,6 +56,21 @@ class Query:
     def on_get_all(self, req, resp):
         """Return all available collections."""
         resp.body = json.dumps(CLIENT.ehqos.list_collection_names())
+
+    def on_post_all(self, req, resp):
+        """Bulk upload into an existing or new collection."""
+        if not req.media:
+            resp.status = falcon.HTTP_400
+            resp.body = 'Request body required'
+            return
+
+        if 'collection' not in req.media or 'data' not in req.media:
+            resp.status = falcon.HTTP_400
+            resp.body = 'Request body must contain keys "collection" and "data"'
+            return
+
+        col, data = req.media['collection'], req.media['data']
+        CLIENT.ehqos[col].insert_many(data)
 
 
 class Routine:
