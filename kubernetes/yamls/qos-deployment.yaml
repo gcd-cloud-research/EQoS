@@ -10,6 +10,7 @@ spec:
     matchLabels:
       io.kompose.service: qos
   strategy: {}
+  replicas: 1
   template:
     metadata:
       creationTimestamp: null
@@ -17,8 +18,8 @@ spec:
         io.kompose.service: qos
     spec:
       containers:
-      - image: 192.168.101.76:5000/loadBalancer
-        name: loadBalancer
+      - image: 192.168.101.76:5000/loadbalancer
+        name: loadbalancer
         ports:
         - containerPort: 8000
         resources: {}
