@@ -1,14 +1,18 @@
 """"This service runs outside of the cluster on net=host or a mapped port."""
 import json
+import os
 
-from flask import Flask, request, abort
+from flask import Flask, request, abort, jsonify
 import requests
 from kubernetes import client, config
+from werkzeug.utils import secure_filename
 
 config.load_kube_config(config_file='/kube/config')
 KUBE_API = client.CoreV1Api()
 QOS = None
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = "/tmp"
+ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 
 ROUTE_MAP = {
     'mongo': 'mongoapi',
@@ -103,7 +107,9 @@ def get_best_host(service_name):
         try:
             res = requests.get('http://%s/worker' % QOS, data=json.dumps(pods, cls=LitePod.Encoder))
         except requests.exceptions.ConnectionError:
+            app.logger.info("QoS not found, querying Kubernetes...")
             QOS = get_qos()
+            app.logger.info("Done. Retrying request")
 
     if res.status_code != 200:
         return res.status_code, None
@@ -111,9 +117,10 @@ def get_best_host(service_name):
     return res.status_code, '%s:%s' % (best_pod.host_ip, get_port(best_pod))
 
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+@app.route('/<path:path>', methods=['GET', 'POST'])
 def on_request(path):
+    app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
     if not path:  # If /, return 200 (for testing)
         return ''
 
@@ -121,7 +128,10 @@ def on_request(path):
         abort(401)
         return
 
-    service, route = path.split('/', maxsplit=1)
+    if len(path.split('/')) == 1:
+        service, route = path, ''
+    else:
+        service, route = path.split('/', maxsplit=1)
 
     # Get the service related to this path
     mapped_service = ROUTE_MAP[service] if service in ROUTE_MAP else ''
@@ -136,19 +146,42 @@ def on_request(path):
         abort(status)
         return
     app.logger.info("Got best host: %s" % host)
+    url = 'http://%s/%s' % (host, route)
 
     # Add files if necessary
+    app.logger.info("Processing files")
     files = {}
-    if 'program' in request.files:
-        files['program'] = request.files['program']
+    if 'program' in request.files and \
+            request.files['program'].filename and \
+            request.files['program'].filename.split('.')[-1] in ALLOWED_EXTENSIONS:
+        # Save file
+        file = request.files['program']
+        location = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+        file.save(location)
+        # Map file to requests
+        files['program'] = open(location, 'rb')
+
+    # Get body
+    app.logger.info("Processing body")
+    data = request.get_json() if request.is_json else None
 
     # Route request
-    req = requests.request(request.method, 'http://%s/%s' % (host, route), data=request.get_json(), files=files)
+    app.logger.info("Routing %s to %s" % (request.method, url))
+    req = requests.request(request.method, url, data=data, files=files)
     app.logger.info("Response received: %d" % req.status_code)
 
+    # Remove files
+    if 'program' in files:
+        os.remove(files['program'].name)
+        app.logger.info("Cleaned files")
+
     # Process response
-    return req.text
+    if req.status_code != 200:
+        abort(req.status_code)
+        return
+    return app.response_class(response=req.content, mimetype='application/json')
 
 
 if __name__ == '__main__':
+    QOS = get_qos()
     app.run(debug=True, host='0.0.0.0')
