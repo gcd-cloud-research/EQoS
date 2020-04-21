@@ -61,4 +61,3 @@ spec:
       - name: cadvisor-claim3
         hostPath:
           path: /var/lib/docker
-status: {}
