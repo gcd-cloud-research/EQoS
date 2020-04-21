@@ -83,7 +83,7 @@ def get_available_pods(service):
             lambda running: running is not None,
             map(  # Get list of 'running' statuses from containers in pod
                 lambda cont_status: cont_status.state.running,
-                pod.status.container_statuses
+                pod.status.container_statuses if pod.status.container_statuses else []
             )
         ))),
         KUBE_API.list_namespaced_pod('default', label_selector=label).items
