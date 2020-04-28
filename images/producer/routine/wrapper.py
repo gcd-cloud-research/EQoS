@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python3
 
 import sys
 import json
@@ -21,7 +21,7 @@ requests.post(URL, data=json.dumps({'status': 'RUNNING'}))
 extension = sys.argv[2]
 if os.fork() == 0:
     if extension == 'py':
-        os.execlp('python', '-u', '/worker.py')
+        os.execlp('python3', '-u', '/worker.py')
     elif extension == 'r':
         os.execlp('Rscript', '/worker.r')
 _, status = os.wait()

@@ -29,6 +29,23 @@ docker_api = docker.from_env()
 rpipe, wpipe = os.pipe()
 
 
+class Requirements:
+    def __init__(self):
+        self.req = {}
+
+    def parse_requirements(self, folder, file='requirements.txt'):
+        # Does not check for existing file, propagating error is the intended behaviour
+        with open('%s/%s' % (folder, file)) as fh:
+            for line in fh:
+                self.req[line.split('=')[0].strip()] = line.split('=')[-1].strip()
+        return self
+
+    def write_requirements(self, folder, file='requirements.txt'):
+        with open('%s/%s' % (folder, file), 'w+') as fh:
+            for key, value in self.req.items():
+                fh.write('%s==%s\n' % (key, value))
+
+
 @app.route('/test')
 def test():
     return ''
@@ -43,8 +60,14 @@ def build_and_push(rid, name):
     shutil.copytree('/routine', routine_dir)
 
     # Move submitted script to routine folder, changing name but keeping extension
+    name_wo_extension = '.'.join(name.split('.')[:-1])
     extension = name.split('.')[-1]
-    shutil.move(name, '%s/worker.%s' % (routine_dir, extension))
+    shutil.move('%s/%s' % (name_wo_extension, name), '%s/worker.%s' % (routine_dir, extension))
+
+    # Update requirements.txt
+    requirements = Requirements().parse_requirements(name_wo_extension).parse_requirements(routine_dir)
+    shutil.rmtree(name_wo_extension)
+    requirements.write_requirements(routine_dir)
 
     # Build and push image
     image_tag = '%s/%s' % (registry, rid)
@@ -122,11 +145,19 @@ def new_routine():
 
     f = request.files['program']
     name = secure_filename(f.filename)
-    extension = name.split('.')[-1]
-    if extension not in ['py', 'r']:
+    name_wo_extension = '.'.join(name.split('.')[:-1])
+    if name.split('.')[-1] not in ['py', 'r']:
         abort(400)
 
-    f.save('/received/' + name)
+    os.makedirs('/received/' + name_wo_extension)
+
+    if 'requirements' in request.files:
+        req = request.files['requirements']
+        if secure_filename(req.filename).split('.')[-1] != 'txt':
+            abort(400)
+        req.save('/received/%s/requirements.txt' % name_wo_extension)
+
+    f.save('/received/%s/%s' % (name_wo_extension, name))
     os.write(wpipe, ('%s\n' % name).encode('utf-8'))
     return ''
 
@@ -134,7 +165,12 @@ def new_routine():
 if __name__ == '__main__':
     if os.fork() == 0:
         os.close(wpipe)
-        routine_watcher(rpipe)
+        while True:  # Creates a routine watcher and monitors it, creating another one if it crashes
+            if os.fork() == 0:
+                routine_watcher(rpipe)
+            else:
+                code = os.wait()
+                app.logger.error("Routine watcher %d exited with code %d" % code)
     else:
         os.close(rpipe)
         app.run(debug=True, host='0.0.0.0')

@@ -8,3 +8,4 @@ misc*
 **/config.*
 **/__pycache__
 **/.idea
+**/kubeconfig
