@@ -31,8 +31,7 @@ class Query:
         """
         Return results from given collection with given filters.
 
-        Filters are obtained by combining body and query parameters.
-        Query parameters have precedence.
+        Filters are obtained by body parameters.
         """
         query = req.media if req.media else {}
 
@@ -40,11 +39,18 @@ class Query:
             query['_id'] = ObjectId(query['id'])
             del query['id']
 
+        sort = None
+        if '$sort' in query:
+            sort = query['$sort']
+            del query['$sort']
+
         if collection in CLIENT.ehqos.list_collection_names():
-            query_result = CLIENT.ehqos[collection].find(query)
+            query_result = CLIENT.ehqos[collection].find(query, limit=100)
         else:
             resp.status = falcon.HTTP_404
             return
+
+        query_result = query_result.sort(sort) if sort else query_result
 
         body = []
         for elem in query_result:
@@ -111,7 +117,7 @@ class Performance:
 
 
 class Delete:
-    def on_post(self, req, resp):
+    def on_delete(self, req, resp):
         for collection in CLIENT.ehqos.list_collection_names():
             CLIENT.ehqos.drop_collection(collection)
 
@@ -128,4 +134,4 @@ api.add_route('/query', queryResource, suffix="all")
 api.add_route('/routine/new', routineResource, suffix="create")
 api.add_route('/routine/{routine_id}', routineResource, suffix="update")
 api.add_route('/performance', performanceResource)
-api.add_route('/delete', deleteResource)
+api.add_route('/', deleteResource)

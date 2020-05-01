@@ -26,25 +26,32 @@ ALLOWED_ROUTES = [
 
 
 class LitePod:
+    """Assumes pods have at least one running container, as checked in get_available_pods"""
     class Encoder(json.JSONEncoder):
         def default(self, o):
             return o.__dict__
 
-    def __init__(self, name, ip, labels):
+    def __init__(self, name, ip, labels, container):
         self.name = name
         self.host_ip = ip
         self.labels = labels
+        self.container = container
 
     def __str__(self):
         return json.dumps(self.__dict__)
 
     @staticmethod
     def pod_to_lite_pod(pod):
-        return LitePod(pod.metadata.name, pod.status.host_ip, pod.metadata.labels)
+        return LitePod(
+            pod.metadata.name,
+            pod.status.host_ip,
+            pod.metadata.labels,
+            pod.status.container_statuses[0].container_id[9:]  # Discarding 'docker://'
+        )
 
     @staticmethod
     def decode(o):
-        return LitePod(o['name'], o['host_ip'], o['labels'])
+        return LitePod(o['name'], o['host_ip'], o['labels'], o['container'])
 
 
 def is_allowed(route):

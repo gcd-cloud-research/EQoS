@@ -65,7 +65,10 @@ def build_and_push(rid, name):
     shutil.move('%s/%s' % (name_wo_extension, name), '%s/worker.%s' % (routine_dir, extension))
 
     # Update requirements.txt
-    requirements = Requirements().parse_requirements(name_wo_extension).parse_requirements(routine_dir)
+    requirements = Requirements()
+    if 'requirements.txt' in os.listdir(name_wo_extension):
+        requirements.parse_requirements(name_wo_extension)
+    requirements.parse_requirements(routine_dir)
     shutil.rmtree(name_wo_extension)
     requirements.write_requirements(routine_dir)
 
