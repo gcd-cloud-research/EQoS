@@ -23,5 +23,8 @@ spec:
         ports:
         - containerPort: 8000
         resources: {}
+      - image: 192.168.101.76:5000/autoscaler
+        name: autoscaler
+        resources: {}
       restartPolicy: Always
 status: {}
