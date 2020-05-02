@@ -93,11 +93,16 @@ def get_container_usage(machine_specs):
     usages = []
     updated_reports = []
     for container_id in cjson.keys():
+        labels = cjson[container_id]['spec']['labels']
+        if 'io.kubernetes.pod.namespace' not in labels or labels['io.kubernetes.pod.namespace'] != 'default':
+            continue
+        print(labels)
         container_id_short = container_id.split('/')[-1]
         usage = get_usage(cjson[container_id]['stats'], machine_specs)
         # Add usage only if it has not been reported yet
         if usage and usage['time'] != get_last_report(container_id_short):
             usages.append({
+                "pod": labels['io.kubernetes.pod.name'],
                 "container": container_id_short,
                 "usage": usage
             })
