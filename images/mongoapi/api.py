@@ -45,7 +45,7 @@ class Query:
             del query['$sort']
 
         if collection in CLIENT.ehqos.list_collection_names():
-            query_result = CLIENT.ehqos[collection].find(query, limit=100)
+            query_result = CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
         else:
             resp.status = falcon.HTTP_404
             return
