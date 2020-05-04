@@ -12,7 +12,7 @@ with open("config.json") as fh:
 
 
 CLIENT = pymongo.MongoClient(
-    "mongodb://%s:%s@mongo:27017" %
+    "mongodb://%s:%s@internaldb:27017" %
     (conf['mongo_user'], conf['mongo_pass'])
 )
 

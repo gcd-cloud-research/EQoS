@@ -44,7 +44,8 @@ def get_stats(entry):
     return entry['timestamp'], entry['cpu']['usage']['total'], entry['memory']['usage']
 
 
-def get_usage(part_stats, machine_stats):
+def get_usage(part, machine_stats):
+    part_stats = part['stats']
     if len(part_stats) < 2:
         return None
     # Extract relevant data
@@ -55,8 +56,8 @@ def get_usage(part_stats, machine_stats):
     cpu_usage = 0
     if time != prev_time:
         cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
-    cpu_percent = float(cpu_usage) / float(machine_stats["cores"]) * 100
-    mem_percent = float(mem) / float(machine_stats["memory"]) * 100
+    cpu_percent = float(cpu_usage) / float(machine_stats["cores"]) * 100  # Over number of host cores
+    mem_percent = float(mem) / float(part['spec']['memory']['limit']) * 100  # Over container's reservation
     return {
         "time": time,
         "cpu": cpu_percent,
@@ -71,7 +72,7 @@ def get_machine_usage(machine_specs):
         return None
 
     hostname = machine_specs['hostname']
-    usage = get_usage(cjson['stats'], machine_specs)
+    usage = get_usage(cjson, machine_specs)
 
     # If this timestamp has been pushed, do not push it again
     if not usage or usage['time'] == get_last_report(hostname):
@@ -96,9 +97,8 @@ def get_container_usage(machine_specs):
         labels = cjson[container_id]['spec']['labels']
         if 'io.kubernetes.pod.namespace' not in labels or labels['io.kubernetes.pod.namespace'] != 'default':
             continue
-        print(labels)
         container_id_short = container_id.split('/')[-1]
-        usage = get_usage(cjson[container_id]['stats'], machine_specs)
+        usage = get_usage(cjson[container_id], machine_specs)
         # Add usage only if it has not been reported yet
         if usage and usage['time'] != get_last_report(container_id_short):
             usages.append({

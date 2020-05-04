@@ -15,12 +15,12 @@ app.config['UPLOAD_FOLDER'] = "/tmp"
 ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 
 ROUTE_MAP = {
-    'mongo': 'mongoapi',
+    'mongo': 'externaldb',
     'routine': 'producer'
 }
 
 ALLOWED_ROUTES = [
-    r'^mongo/query',
+    r'^mongo',
     r'^routine$'
 ]
 

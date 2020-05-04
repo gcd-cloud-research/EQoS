@@ -6,14 +6,14 @@ metadata:
     kompose.version: 1.19.0 (f63a961c)
   creationTimestamp: null
   labels:
-    io.kompose.service: mongo
-  name: mongo
+    io.kompose.service: internaldb
+  name: internaldb
 spec:
   ports:
   - name: "27017"
     port: 27017
     targetPort: 27017
   selector:
-    io.kompose.service: mongo
+    io.kompose.service: internaldb
 status:
   loadBalancer: {}

@@ -1,11 +1,9 @@
 import os
-import time
 from datetime import datetime, timedelta
-from signal import alarm, pause, SIGALRM, signal, SIG_IGN
+from signal import alarm, pause, SIGALRM, signal
+from time import sleep
 import requests
 import logging
-
-from kubernetes import client, config as kubeconfig
 import json
 import sys
 
@@ -55,8 +53,8 @@ class Config:
         self.scaling = scaling
 
     @staticmethod
-    def load(filename):
-        with open(filename) as fh:
+    def load(json_file):
+        with open(json_file) as fh:
             json_obj = json.load(fh)
         json_obj['scaling'] = from_json(Config.ScalingConfig, json_obj['scaling'])
         return from_json(Config, json_obj)
@@ -91,8 +89,16 @@ class LoadTracker:
             return 1
 
         # Check if scaling or descaling is needed (only one can be True)
-        scale, self.overloaded = self._load_check(self.overloaded, lambda u: u > self.config.max_load, container, usage)
-        descale, self.underloaded = self._load_check(self.underloaded, lambda u: u < self.config.min_load, container, usage)
+        scale, self.overloaded = self._load_check(
+            self.overloaded,
+            lambda u: u > self.config.max_load,
+            container, usage
+        )
+        descale, self.underloaded = self._load_check(
+            self.underloaded,
+            lambda u: u < self.config.min_load,
+            container, usage
+        )
 
         if scale:
             return 1  # Scale up
@@ -132,7 +138,7 @@ class LoadTracker:
         }
 
 
-def monitor_containers(config):
+def monitor_containers(config, wpipe):
     stepback_time = timedelta(seconds=config.update_seconds)
     load_tracker = LoadTracker(config)
     while True:
@@ -151,7 +157,7 @@ def monitor_containers(config):
         logging.debug("Received %d documents" % (len(res.json())))
 
         if res.status_code != 200:
-            logging.warning("Received code %d from mongoapi: %s" % (res.status_code, res.text))
+            logging.warning("Received code %d from internaldb: %s" % (res.status_code, res.text))
             stepback_time += timedelta(seconds=config.update_seconds)  # In next request, ask for all missing data
 
         else:
@@ -163,8 +169,25 @@ def monitor_containers(config):
                         measurement['pod'],
                         'de' if scale_val < 0 else ''
                     ))
-                logging.info("No actions needed for %s in %s" % (measurement['container'], measurement['pod']))
+                    os.write(wpipe, ('%s:%d\n' % (measurement['container'], scale_val)).encode('utf-8'))
+                logging.debug("No actions needed for %s in %s" % (measurement['container'], measurement['pod']))
         pause()
+
+
+def scale_from_pipe(rpipe):
+    from kubernetes import client, config
+    config.load_incluster_config()
+    c = client.ExtensionsV1beta1Api()
+    fh = os.fdopen(rpipe)
+    while True:
+        readval = fh.readline().strip()
+        if readval:
+            container, scale_val = readval.split(':')
+            logging.debug("Scaling %s by %d" % (container, scale_val))
+            # c.read_namespaced_deployment_scale(, 'default')
+            # c.replace_namespaced_deployment(, 'default', )
+        else:
+            sleep(1)
 
 
 if __name__ == '__main__':
@@ -173,13 +196,19 @@ if __name__ == '__main__':
     else:
         filename = 'config.json'
 
-    def sign_debug(sig, stackframe):
+    def sign_debug(sig, frame):
         print(logging.debug("(ALRM: %d) Received signal %d" % (SIGALRM, sig)))
 
+    rscale, wscale = os.pipe()
     if os.fork() == 0:
-        signal(SIGALRM, sign_debug)
-        monitor_containers(Config.load(filename))
-    else:
-        os.wait()
-        print("!!!!", flush=True)
-        time.sleep(1000)
+        os.close(wscale)
+        scale_from_pipe(rscale)
+    os.close(rscale)
+
+    while True:
+        if os.fork() == 0:
+            signal(SIGALRM, sign_debug)
+            monitor_containers(Config.load(filename), wscale)
+        else:
+            pid, status = os.wait()
+            logging.error("Child %d crashed with status %d (%x). Restarting" % (pid, status, status))
