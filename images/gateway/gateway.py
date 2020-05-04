@@ -13,6 +13,7 @@ QOS = None
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "/tmp"
 ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
+POSSIBLE_FILES = ['program', 'requirements']
 
 ROUTE_MAP = {
     'mongo': 'externaldb',
@@ -61,6 +62,19 @@ def is_allowed(route):
             filter(lambda r: match(r, route), ALLOWED_ROUTES)
         )
     ) > 0
+
+
+def process_file(request, filename):
+    if filename in request.files and \
+            request.files[filename].filename and \
+            request.files[filename].filename.split('.')[-1] in ALLOWED_EXTENSIONS:
+        # Save file
+        file = request.files[filename]
+        location = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+        file.save(location)
+        # Map file to requests
+        return location
+    return ''
 
 
 def get_port(pod):
@@ -158,15 +172,10 @@ def on_request(path):
     # Add files if necessary
     app.logger.info("Processing files")
     files = {}
-    if 'program' in request.files and \
-            request.files['program'].filename and \
-            request.files['program'].filename.split('.')[-1] in ALLOWED_EXTENSIONS:
-        # Save file
-        file = request.files['program']
-        location = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
-        file.save(location)
-        # Map file to requests
-        files['program'] = open(location, 'rb')
+    for file in POSSIBLE_FILES:
+        loc = process_file(request, file)
+        if loc:
+            files[file] = open(loc, 'rb')
 
     # Get body
     app.logger.info("Processing body")
@@ -178,9 +187,10 @@ def on_request(path):
     app.logger.info("Response received: %d" % req.status_code)
 
     # Remove files
-    if 'program' in files:
-        os.remove(files['program'].name)
-        app.logger.info("Cleaned files")
+    for file in POSSIBLE_FILES:
+        if file in files:
+            os.remove(files[file].name)
+    app.logger.info("Cleaned files")
 
     # Process response
     if req.status_code != 200:

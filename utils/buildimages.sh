@@ -9,6 +9,8 @@ if [ "$#" -ge 1 ]; then
 	log "Set registry to $registry"
 fi
 
+cd "$IMAGE_DIR" || exit 1
+
 log "Searching for images to build"
 if [ "$#" -eq 2 ]; then
   search=$2

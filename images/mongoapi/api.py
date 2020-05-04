@@ -5,15 +5,34 @@ import sys
 from datetime import datetime
 from bson.objectid import ObjectId
 
+
+JSON_CONF_STRUCTURE = {  # '{}' represents a value
+        'internal': {'mongo_user': {}, 'mongo_pass': {}},
+        'business': {'mongo_user': {}, 'mongo_pass': {}}
+    }
+
+
+def valid_conf(reference, conf_obj):
+    for key in reference.keys():
+        if key not in conf_obj or not valid_conf(reference[key], conf_obj[key]):
+            return False
+    return True
+
+
 with open("config.json") as fh:
     conf = json.load(fh)
-    if 'mongo_user' not in conf or 'mongo_pass' not in conf:
+    if not valid_conf(JSON_CONF_STRUCTURE, conf):
         sys.exit(1)
 
 
-CLIENT = pymongo.MongoClient(
+INTERNAL_CLIENT = pymongo.MongoClient(
     "mongodb://%s:%s@internaldb:27017" %
-    (conf['mongo_user'], conf['mongo_pass'])
+    (conf['internal']['mongo_user'], conf['internal']['mongo_pass'])
+)
+
+BUSINESS_CLIENT = pymongo.MongoClient(
+    "mongodb://%s:%s@businessdb:27017" %
+    (conf['business']['mongo_user'], conf['business']['mongo_pass'])
 )
 
 
@@ -44,8 +63,10 @@ class Query:
             sort = query['$sort']
             del query['$sort']
 
-        if collection in CLIENT.ehqos.list_collection_names():
-            query_result = CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
+        if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
+            query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
+        elif collection in BUSINESS_CLIENT.ehqos.list_collection_names():
+            query_result = BUSINESS_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
         else:
             resp.status = falcon.HTTP_404
             return
@@ -61,7 +82,7 @@ class Query:
 
     def on_get_all(self, req, resp):
         """Return all available collections."""
-        resp.body = json.dumps(CLIENT.ehqos.list_collection_names())
+        resp.body = json.dumps(INTERNAL_CLIENT.ehqos.list_collection_names())
 
     def on_post_all(self, req, resp):
         """Bulk upload into an existing or new collection."""
@@ -76,7 +97,7 @@ class Query:
             return
 
         col, data = req.media['collection'], req.media['data']
-        CLIENT.ehqos[col].insert_many(data)
+        INTERNAL_CLIENT.ehqos[col].insert_many(data)
 
 
 class Routine:
@@ -86,7 +107,7 @@ class Routine:
             resp.status = falcon.HTTP_400
             return
 
-        result = CLIENT.ehqos.tasks.insert_one({
+        result = BUSINESS_CLIENT.ehqos.tasks.insert_one({
             'name': data["name"],
             'status': 'PENDING',
             'issuer': data["issuer"],
@@ -103,7 +124,7 @@ class Routine:
         if data['status'] == 'SUCCESS' or data["status"] == 'FAILURE':
             data['end_time'] = datetime.utcnow().isoformat()
 
-        CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
+        BUSINESS_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
 
 
 class Performance:
@@ -113,13 +134,15 @@ class Performance:
             resp.status = falcon.HTTP_400
             return
 
-        CLIENT.ehqos.performance.insert_many(data)
+        INTERNAL_CLIENT.ehqos.performance.insert_many(data)
 
 
 class Delete:
     def on_delete(self, req, resp):
-        for collection in CLIENT.ehqos.list_collection_names():
-            CLIENT.ehqos.drop_collection(collection)
+        for collection in INTERNAL_CLIENT.ehqos.list_collection_names():
+            INTERNAL_CLIENT.ehqos.drop_collection(collection)
+        for collection in BUSINESS_CLIENT.ehqos.list_collection_names():
+            BUSINESS_CLIENT.ehqos.drop_collection(collection)
 
 
 api = falcon.API()
