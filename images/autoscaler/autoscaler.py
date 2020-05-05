@@ -6,8 +6,13 @@ import requests
 import logging
 import json
 import sys
+from kubernetes import client
+from kubernetes.config import load_incluster_config
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+load_incluster_config()
+KUBE_CLIENT = client.AppsV1Api()
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
 def fromisoformat(usage_time):
@@ -47,10 +52,12 @@ class Config:
     def __init__(
             self,
             u_s=5,
-            scaling=ScalingConfig()
+            scaling=ScalingConfig(),
+            exclude=("monitor",)
     ):
         self.update_seconds = u_s
         self.scaling = scaling
+        self.exclude = exclude
 
     @staticmethod
     def load(json_file):
@@ -89,22 +96,22 @@ class LoadTracker:
             return 1
 
         # Check if scaling or descaling is needed (only one can be True)
-        scale, self.overloaded = self._load_check(
+        over, self.overloaded = self._load_check(
             self.overloaded,
             lambda u: u > self.config.max_load,
             container, usage
         )
-        descale, self.underloaded = self._load_check(
+        under, self.underloaded = self._load_check(
             self.underloaded,
             lambda u: u < self.config.min_load,
             container, usage
         )
 
-        if scale:
-            return 1  # Scale up
-        if descale:
-            return -1  # Scale down
-        return 0  # Do nothing
+        if over:
+            return 1  # Container overloaded
+        if under:
+            return -1  # Container underloaded
+        return 0  # Normal
 
     def _load_check(self, load_object, criteria, container, usage):
         # If usage means exceptional load...
@@ -161,31 +168,86 @@ def monitor_containers(config, wpipe):
             stepback_time += timedelta(seconds=config.update_seconds)  # In next request, ask for all missing data
 
         else:
+            # Pod is overloaded if one container is overloaded.
+            # Pod is underloaded if all containers are underloaded
+            pods = {}
             for measurement in res.json():
-                scale_val = load_tracker.process_usage(measurement['container'], measurement['usage'])
-                if scale_val != 0:
-                    logging.info("Container %s in pod %s should be %sscaled" % (
-                        measurement['container'],
-                        measurement['pod'],
-                        'de' if scale_val < 0 else ''
-                    ))
-                    os.write(wpipe, ('%s:%d\n' % (measurement['container'], scale_val)).encode('utf-8'))
-                logging.debug("No actions needed for %s in %s" % (measurement['container'], measurement['pod']))
+                if measurement['pod'] not in pods:
+                    pods[measurement['pod']] = 0
+
+                # If we know that pod is overloaded, we can skip all other containers
+                if pods[measurement['pod']] > 0:
+                    continue
+
+                # Find out if container is overloaded (1), underloaded (-1), or fine (0)
+                load = load_tracker.process_usage(measurement['container'], measurement['usage'])
+
+                # If pod is underloaded, its value will be the number of containers, negative
+                pods[measurement['pod']] = 1 if load == 1 else pods[measurement['pod']] + load
+
+            # Aggregate all pods under their respective deployment
+            deps = set(map(lambda pod: pod.split('-')[0], pods.keys()))
+            from functools import reduce
+            buffer = ";".join([
+                '%s,%d' % (
+                    dep,
+                    reduce(
+                        lambda acc, val: acc + val,
+                        map(
+                            lambda poditem: poditem[1],
+                            filter(
+                                lambda poditem: dep in poditem[0],
+                                pods.items()
+                            )
+                        )
+                    )
+                )
+                for dep in deps
+            ])
+            logging.debug(buffer)
+            os.write(wpipe, (buffer + '\n').encode('utf-8'))
         pause()
 
 
-def scale_from_pipe(rpipe):
-    from kubernetes import client, config
-    config.load_incluster_config()
-    c = client.ExtensionsV1beta1Api()
+def get_desired_replicas(deployment):
+    dep_data = KUBE_CLIENT.read_namespaced_deployment(deployment, 'default')
+    return dep_data.metadata.labels['io.kuberentes.replicas'] \
+        if 'io.kubernetes.replicas' in dep_data.metadata.labels \
+        else 1
+
+
+def scale_from_pipe(rpipe, whitelist):
     fh = os.fdopen(rpipe)
+    desired = {}
     while True:
         readval = fh.readline().strip()
         if readval:
-            container, scale_val = readval.split(':')
-            logging.debug("Scaling %s by %d" % (container, scale_val))
-            # c.read_namespaced_deployment_scale(, 'default')
-            # c.replace_namespaced_deployment(, 'default', )
+            logging.debug("Received %s" % readval)
+            replicas = {}
+            for dep, adjustment in [(entry.split(',')[0], int(entry.split(',')[1])) for entry in readval.split(';')]:
+                if dep in whitelist:
+                    continue
+                # Get current number of desired replicas by Kubernetes
+                kube_des_rep = KUBE_CLIENT.read_namespaced_deployment_scale(dep, 'default').spec.replicas
+
+                # Get desired number of replicas by us
+                if dep not in desired:
+                    desired[dep] = get_desired_replicas(dep)
+                our_des_rep = desired[dep] + adjustment
+                our_des_rep = our_des_rep if our_des_rep > 0 else 1
+                logging.info("Deployment %s:\n\tIn kubernetes: %d\n\tDesired: %d" % (dep, kube_des_rep, our_des_rep))
+
+                # Record deployments in which desires differ
+                if kube_des_rep != our_des_rep:
+                    replicas[dep] = our_des_rep
+
+            # Where Kubernetes desires differently, make it change its wishes
+            for dep, objective in replicas.items():
+                logging.info("Scaling %s to %d" % (dep, objective))
+                KUBE_CLIENT.patch_namespaced_deployment_scale(dep, 'default', json.loads(
+                    '{"spec": { "replicas": %d }}' % objective
+                ))
+                desired[dep] = objective
         else:
             sleep(1)
 
@@ -196,19 +258,25 @@ if __name__ == '__main__':
     else:
         filename = 'config.json'
 
+    conf = Config.load(filename)
+
     def sign_debug(sig, frame):
         print(logging.debug("(ALRM: %d) Received signal %d" % (SIGALRM, sig)))
 
     rscale, wscale = os.pipe()
     if os.fork() == 0:
         os.close(wscale)
-        scale_from_pipe(rscale)
+        while True:
+            if os.fork() == 0:
+                scale_from_pipe(rscale, conf.exclude)
+            else:
+                logging.error("Child %d crashed with status %d" % (os.wait()))
     os.close(rscale)
 
     while True:
         if os.fork() == 0:
             signal(SIGALRM, sign_debug)
-            monitor_containers(Config.load(filename), wscale)
+            monitor_containers(conf, wscale)
         else:
             pid, status = os.wait()
             logging.error("Child %d crashed with status %d (%x). Restarting" % (pid, status, status))

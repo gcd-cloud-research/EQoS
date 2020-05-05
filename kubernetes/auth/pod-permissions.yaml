@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: pod-manages-job
+  name: pod-permissions
   namespace: default
 subjects:
 - kind: ServiceAccount
@@ -9,5 +9,5 @@ subjects:
   namespace: default
 roleRef:
   kind: Role
-  name: job-manager
+  name: manage-jobs-read-scale
   apiGroup: rbac.authorization.k8s.io
