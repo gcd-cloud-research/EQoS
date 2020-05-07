@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: consumer
+  name: consumer
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: consumer
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: consumer
+    spec:
+      containers:
+      - image: 192.168.101.76:5000/consumer
+        name: consumer
+        resources: {}
+      restartPolicy: Always
+status: {}

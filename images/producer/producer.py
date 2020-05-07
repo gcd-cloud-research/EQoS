@@ -6,9 +6,8 @@ import time
 from flask import Flask, request, abort
 from werkzeug.utils import secure_filename
 import requests
-from kubernetes import client, config
-from kubernetes.client.rest import ApiException
 import docker
+import pika
 
 with open('/var/run/secrets/kubernetes.io/serviceaccount/token') as fh:
     token = fh.read()
@@ -17,10 +16,6 @@ registry = os.environ['REGISTRY']
 
 # Create Flask app
 app = Flask(__name__)
-
-# Create Kubernetes client
-config.load_incluster_config()
-kube_api = client.BatchV1Api()
 
 # Create Docker client
 docker_api = docker.from_env()
@@ -84,29 +79,6 @@ def build_and_push(rid, name):
     os.chdir('/')
 
 
-def create_job(routine_id, extension):
-    """Fill job as per routine.yaml content."""
-    # Create job base object
-    job = client.V1Job(api_version='batch/v1', kind='Job')
-    # Fill with metadata
-    job.metadata = client.V1ObjectMeta(name=routine_id)
-    # Prepare template object
-    job.spec = client.V1JobSpec(
-        template=client.V1PodTemplateSpec(
-            spec=client.V1PodSpec(
-                containers=[client.V1Container(
-                    name=routine_id,
-                    image="%s/%s" % (registry, routine_id),
-                    args=["wrapper.py", routine_id, extension]
-                )],
-                restart_policy='Never'
-            )
-        ),
-        backoff_limit=4
-    )
-    return job
-
-
 def create_routine(routine_name):
     # Initialise routine in database
     res = requests.post('http://mongoapi:8000/routine/new', data=json.dumps({
@@ -121,14 +93,16 @@ def create_routine(routine_name):
     # Build Docker image for routine and upload to registry
     build_and_push(routine_id, routine_name)
 
-    # Submit job
-    job = create_job(routine_id, routine_name.split('.')[-1])
-    try:
-        res = kube_api.create_namespaced_job('default', job, pretty=True)
-        app.logger.debug(res)
-    except ApiException as exception:
-        app.logger.error("Could not create job: %s" % exception)
-        abort(500)
+    # Submit job for creation
+    conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+    chan = conn.channel()
+    chan.basic_publish(
+        exchange='',
+        routing_key='jobs',
+        body='%s|%s' % (routine_id, routine_name.split('.')[-1])
+    )
+    conn.close()
+
 
 
 def routine_watcher(reader):
