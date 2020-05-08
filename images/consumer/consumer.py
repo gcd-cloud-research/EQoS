@@ -1,8 +1,11 @@
 import os
+import time
+
 import pika
 import logging
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+import requests
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,6 +17,14 @@ chan = conn.channel()
 chan.queue_declare(queue='jobs', durable=True)
 
 registry = os.environ['REGISTRY']
+LOAD_URL = 'http://qos:8000/sysload'
+
+
+def can_create_job():
+    from datetime import datetime
+    res = requests.get(LOAD_URL)
+    logging.info(datetime.now().isoformat(), res.text)
+    return res.status_code == 200 and res.json()['status']
 
 
 def create_job(routine_id, extension):
@@ -43,15 +54,19 @@ def callback(channel, method, properties, body):
     body = body.decode('utf-8')
     routine_id, extension = "|".join(body.split("|")[:-1]), body.split("|")[-1]
     logging.info("Received id %s, extension %s" % (routine_id, extension))
-    # TODO: only create if resource check is correct (query loadbalancer)
-    job = create_job(routine_id, extension)
-    try:
-        res = kube_api.create_namespaced_job('default', job)
-        logging.info("Created")
-        logging.debug(res)
-        channel.basic_ack(delivery_tag=method.delivery_tag)
-    except ApiException as exception:
-        logging.error("Could not create job: %s" % exception)
+    if can_create_job():
+        logging.info("LoadBalancer allows creation. Starting")
+        job = create_job(routine_id, extension)
+        try:
+            res = kube_api.create_namespaced_job('default', job)
+            logging.info("Created")
+            logging.debug(res)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except ApiException as exception:
+            logging.error("Could not create job: %s" % exception)
+    else:
+        logging.info("LoadBalancer returned False. Not creating job")
+        time.sleep(10)
 
 
 if __name__ == '__main__':

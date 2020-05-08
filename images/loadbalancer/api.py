@@ -9,6 +9,18 @@ config.load_incluster_config()
 KUBE_API = client.CoreV1Api()
 
 LOAD_CHECKING_INTERVAL = 3 * 60  # Amount of seconds to go back when averaging load for choosing least busy container
+SYSTEM_LOAD_BACKTRACKING_TIME = 5  # Small amount, but enough to make sure we get data of all hosts
+JOB_CREATION_THRESHOLD = 80
+PERFORMANCE_URL = 'http://mongoapi:8000/query/performance'
+
+
+def add_dicts(dict1, dict2):
+    if dict1.keys() != dict2.keys():
+        raise ValueError("Dicts don't have the same keys")
+    result = {}
+    for key in dict1.keys():
+        result[key] = dict1[key] + dict2[key]
+    return result
 
 
 class Test:
@@ -25,7 +37,7 @@ class Worker:
             return
 
         # Get worker performance
-        res = requests.get('http://mongoapi:8000/query/performance', data=json.dumps({
+        res = requests.get(PERFORMANCE_URL, data=json.dumps({
             'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL)).isoformat()},
             'container': {'$in': list(map(lambda pod: pod['container'], pods))},
             '$sort': [('usage.time', -1)]
@@ -59,7 +71,39 @@ class Worker:
         resp.body = json.dumps(list(filter(lambda pod: pod['container'] == selected_container, pods))[0])
 
 
+class SystemLoad:
+    def on_get(self, req, resp):
+        res = requests.get(PERFORMANCE_URL, data=json.dumps({
+            'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=SYSTEM_LOAD_BACKTRACKING_TIME)).isoformat()},
+            'host': {'$exists': True},
+            '$sort': [('usage.time', -1)]
+        }))
+
+        can_run_job = False
+        accums = {}
+        if res.status_code == 200 and res.json():
+            included_hosts = []
+            host_usages = []
+            # Last usage of each host
+            for entry in res.json():
+                if entry['host'] not in included_hosts:
+                    del entry['usage']['time']
+                    host_usages.append(entry['usage'])
+                    included_hosts.append(entry['host'])
+
+            # Average usages
+            from functools import reduce
+            accums = reduce(add_dicts, host_usages)
+            for value in accums.values():
+                if value / len(included_hosts) < JOB_CREATION_THRESHOLD:
+                    can_run_job = True
+
+        resp.body = json.dumps({'status': can_run_job, 'accums': accums})
+
+
 api = falcon.API()
 workerResource = Worker()
+systemLoadResource = SystemLoad()
 api.add_route('/test', Test())
 api.add_route('/worker', workerResource)
+api.add_route('/sysload', systemLoadResource)
