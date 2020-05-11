@@ -52,6 +52,8 @@ class Query:
 
         Filters are obtained by body parameters.
         """
+        from datetime import datetime
+        print("%s - Received request" % datetime.now().isoformat(), flush=True)
         query = req.media if req.media else {}
 
         if 'id' in query:
@@ -62,7 +64,6 @@ class Query:
         if '$sort' in query:
             sort = query['$sort']
             del query['$sort']
-
         if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
             query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
         elif collection in BUSINESS_CLIENT.ehqos.list_collection_names():
@@ -70,15 +71,17 @@ class Query:
         else:
             resp.status = falcon.HTTP_404
             return
-
+        print("%s - Queried" % datetime.now().isoformat(), flush=True)
         query_result = query_result.sort(sort) if sort else query_result
+        print("%s - Sorted" % datetime.now().isoformat(), flush=True)
+        resp.stream = map(lambda x: Query.format_elem(x), query_result)
+        print("%s - Request completed" % datetime.now().isoformat(), flush=True)
 
-        body = []
-        for elem in query_result:
-            elem['id'] = str(elem['_id'])
-            del elem['_id']
-            body.append(elem)
-        resp.body = json.dumps(body)
+    @staticmethod
+    def format_elem(elem):
+        elem['id'] = str(elem['_id'])
+        del elem['_id']
+        return json.dumps(elem).encode('utf-8')
 
     def on_get_all(self, req, resp):
         """Return all available collections."""

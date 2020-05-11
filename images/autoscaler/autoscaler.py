@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from signal import alarm, pause, SIGALRM, signal
 from time import sleep
 import requests
+import requests.exceptions as ex
 import logging
 import json
 import sys
@@ -71,33 +72,65 @@ class Config:
         return json.dumps(self, cls=Config.Encoder)
 
 
+class JsonStreamIterator:
+    # Does not accept lists as items, as it only needs to process performance objects
+    def __init__(self, response):
+        self.ite = response.iter_content(decode_unicode=True)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        string = ''
+        open_count = 0
+        for char in self.ite:
+            string += char.decode('utf-8')
+            if string[-1] == '{':
+                open_count += 1
+            if string[-1] == '}':
+                open_count -= 1
+                if not open_count:
+                    break
+        if not string:
+            raise StopIteration()
+        return json.loads(string)
+
+
 def monitor_containers(config, wpipe):
     stepback_time = timedelta(seconds=config.update_seconds)
     plugin_manager = PluginManager(config)
     while True:
         alarm(config.update_seconds)
+        logging.warning("Making request")
+        res = None
+        try:
+            res = requests.get(
+                'http://mongoapi:8000/query/performance',
+                data=json.dumps({
+                    'usage.time': {'$gte': (datetime.utcnow() - stepback_time).isoformat()},
+                    'container': {'$exists': True},
+                    '$sort': [('usage.time', 1)]
+                }),
+                timeout=config.update_seconds / 2,
+                stream=True
+            )
+            logging.warning("Received response")
+        except (ex.ConnectionError, ex.ConnectTimeout, ex.ReadTimeout) as e:
+            logging.warning("Could not connect to mongoapi: %s" % e)
+            os.write(wpipe, ';\n'.encode('utf-8'))
 
-        res = requests.get(
-            'http://mongoapi:8000/query/performance',
-            data=json.dumps({
-                'usage.time': {'$gte': (datetime.utcnow() - stepback_time).isoformat()},
-                'container': {'$exists': True},
-                '$sort': [('usage.time', 1)]
-            }),
-            timeout=config.update_seconds / 2
-        )
-
-        logging.debug("Received %d documents" % (len(res.json())))
-
-        if res.status_code != 200:
+        if not res:
+            pass
+        elif res.status_code != 200:
             logging.warning("Received code %d from internaldb: %s" % (res.status_code, res.text))
             stepback_time += timedelta(seconds=config.update_seconds)  # In next request, ask for all missing data
+            res.close()
 
         else:
             # Pod is overloaded if one container is overloaded.
             # Pod is underloaded if all containers are underloaded
             pods = {}
-            for measurement in res.json():
+            for measurement in JsonStreamIterator(res):
                 if measurement['pod'] not in pods:
                     pods[measurement['pod']] = 0
 
@@ -106,11 +139,12 @@ def monitor_containers(config, wpipe):
                     continue
 
                 # Find out if container is overloaded (1), underloaded (-1), or fine (0)
-                load = plugin_manager.process_usage(measurement['container'], measurement['usage'])
+                load = plugin_manager.calculate_load(measurement['container'], measurement['usage'])
 
                 # If pod is underloaded, its value will be the number of containers, negative
                 pods[measurement['pod']] = 1 if load == 1 else pods[measurement['pod']] + load
 
+            res.close()
             # Aggregate all pods under their respective deployment
             deps = set(map(lambda pod: pod.split('-')[0], pods.keys()))
             from functools import reduce
@@ -137,20 +171,22 @@ def monitor_containers(config, wpipe):
 
 def get_desired_replicas(deployment):
     dep_data = KUBE_CLIENT.read_namespaced_deployment(deployment, 'default')
-    return int(dep_data.metadata.labels['io.kuberentes.replicas']) \
+    return int(dep_data.metadata.labels['io.kubernetes.replicas']) \
         if 'io.kubernetes.replicas' in dep_data.metadata.labels \
         else 1
 
 
 def scale_from_pipe(rpipe, whitelist):
     fh = os.fdopen(rpipe)
-    desired = {}
+    desired = init_desired_replicas(whitelist)
     while True:
         readval = fh.readline().strip()
         if readval:
             logging.debug("Received %s" % readval)
             replicas = {}
-            for dep, adjustment in [(entry.split(',')[0], int(entry.split(',')[1])) for entry in readval.split(';')]:
+            for dep, adjustment in \
+                    [(entry.split(',')[0], int(entry.split(',')[1])) for entry in readval.split(';')] if readval != ';'\
+                    else []:
                 if dep in whitelist:
                     continue
                 # Get current number of desired replicas by Kubernetes
@@ -168,6 +204,8 @@ def scale_from_pipe(rpipe, whitelist):
                     replicas[dep] = our_des_rep
 
             # Where Kubernetes desires differently, make it change its wishes
+            # Or if that is what was asked, redo all
+            replicas = replicas if readval != ';' else desired
             for dep, objective in replicas.items():
                 logging.info("Scaling %s to %d" % (dep, objective))
                 KUBE_CLIENT.patch_namespaced_deployment_scale(dep, 'default', json.loads(
@@ -176,6 +214,14 @@ def scale_from_pipe(rpipe, whitelist):
                 desired[dep] = objective
         else:
             sleep(1)
+
+
+def init_desired_replicas(whitelist):
+    deployments = KUBE_CLIENT.list_namespaced_deployment('default').items
+    desired = {}
+    for dep in filter(lambda name: name not in whitelist, map(lambda d: d.metadata.name, deployments)):
+        desired[dep] = get_desired_replicas(dep)
+    return desired
 
 
 if __name__ == '__main__':
