@@ -8,15 +8,12 @@ import json
 import sys
 from kubernetes import client
 from kubernetes.config import load_incluster_config
+from pluginmanager import PluginManager
 
 load_incluster_config()
 KUBE_CLIENT = client.AppsV1Api()
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
-
-
-def fromisoformat(usage_time):
-    return datetime.fromisoformat(usage_time[:usage_time.find('.') + 4])
 
 
 def from_json(class_to_instantiate, json_obj):
@@ -53,11 +50,15 @@ class Config:
             self,
             u_s=5,
             scaling=ScalingConfig(),
-            exclude=("monitor",)
+            exclude=("monitor",),
+            over_threshold=0.5,
+            under_threshold=0.5
     ):
         self.update_seconds = u_s
         self.scaling = scaling
         self.exclude = exclude
+        self.over_threshold = over_threshold
+        self.under_threshold = under_threshold
 
     @staticmethod
     def load(json_file):
@@ -70,84 +71,9 @@ class Config:
         return json.dumps(self, cls=Config.Encoder)
 
 
-class LoadTracker:
-    def __init__(self, config):
-        self.overloaded = {}
-        self.underloaded = {}
-        self.grace = {}
-        self.config = config.scaling
-        self.threshold = config.scaling.wait_seconds / config.update_seconds
-
-    def process_usage(self, container, usage):
-        if container in self.grace:
-            # If grace period is exceeded by measurements, remove container from grace
-            if self.grace[container] < fromisoformat(usage['time']):
-                del self.grace[container]
-            # Otherwise, do not process usage
-            else:
-                return 0
-
-        # If container is over immediate scale threshold, scale and add to grace
-        if max(usage['cpu'], usage['memory']) > self.config.max_load_nowait:
-            if container in self.overloaded:
-                del self.overloaded[container]
-                self.grace[container] = fromisoformat(usage['time']) + \
-                    timedelta(seconds=self.config.grace_period)
-            return 1
-
-        # Check if scaling or descaling is needed (only one can be True)
-        over, self.overloaded = self._load_check(
-            self.overloaded,
-            lambda u: u > self.config.max_load,
-            container, usage
-        )
-        under, self.underloaded = self._load_check(
-            self.underloaded,
-            lambda u: u < self.config.min_load,
-            container, usage
-        )
-
-        if over:
-            return 1  # Container overloaded
-        if under:
-            return -1  # Container underloaded
-        return 0  # Normal
-
-    def _load_check(self, load_object, criteria, container, usage):
-        # If usage means exceptional load...
-        if criteria(max(usage['cpu'], usage['memory'])):
-            # If not in object, add
-            if container not in load_object:
-                load_object[container] = LoadTracker._new_load_object(usage['time'])
-
-            # If it is in object and time > wait_seconds, scale and add to grace
-            elif fromisoformat(usage['time']) > \
-                    load_object[container]['start_time'] + timedelta(seconds=self.config.wait_seconds):
-                del load_object[container]
-                self.grace[container] = fromisoformat(usage['time']) + \
-                    timedelta(seconds=self.config.grace_period)
-                return True, load_object
-
-        # If usage means no exceptional load, but container is in object, increment normal load counter
-        elif container in load_object:
-            load_object[container]['normal_load_count'] += 1
-            # If tolerance is reached, remove from overloaded
-            if load_object[container]['normal_load_count'] >= self.config.tolerance:
-                del load_object[container]
-
-        return False, load_object  # Catch-all for non-scaling cases
-
-    @staticmethod
-    def _new_load_object(time):
-        return {
-            'start_time': fromisoformat(time),
-            'normal_load_count': 0
-        }
-
-
 def monitor_containers(config, wpipe):
     stepback_time = timedelta(seconds=config.update_seconds)
-    load_tracker = LoadTracker(config)
+    plugin_manager = PluginManager(config)
     while True:
         alarm(config.update_seconds)
 
@@ -180,7 +106,7 @@ def monitor_containers(config, wpipe):
                     continue
 
                 # Find out if container is overloaded (1), underloaded (-1), or fine (0)
-                load = load_tracker.process_usage(measurement['container'], measurement['usage'])
+                load = plugin_manager.process_usage(measurement['container'], measurement['usage'])
 
                 # If pod is underloaded, its value will be the number of containers, negative
                 pods[measurement['pod']] = 1 if load == 1 else pods[measurement['pod']] + load

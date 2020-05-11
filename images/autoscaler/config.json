@@ -8,5 +8,7 @@
     "grace_period": 30
   },
   "update_seconds": 5,
-  "exclude": ["monitor"]
+  "exclude": ["monitor"],
+  "over_threshold": 0.5,
+  "under_threhold": 0.5
 }
