@@ -114,7 +114,7 @@ def monitor_containers(config, wpipe):
                 timeout=config.update_seconds / 2,
                 stream=True
             )
-            logging.warning("Received response")
+            logging.warning("Received response. %d" % res.elapsed.total_seconds())
         except (ex.ConnectionError, ex.ConnectTimeout, ex.ReadTimeout) as e:
             logging.warning("Could not connect to mongoapi: %s" % e)
             os.write(wpipe, ';\n'.encode('utf-8'))
@@ -145,8 +145,12 @@ def monitor_containers(config, wpipe):
                 pods[measurement['pod']] = 1 if load == 1 else pods[measurement['pod']] + load
 
             res.close()
+
             # Aggregate all pods under their respective deployment
-            deps = set(map(lambda pod: pod.split('-')[0], pods.keys()))
+            deps = filter(
+                lambda name: name in ' '.join(pods.keys()),  # Only get deployments that have been measured
+                get_deployment_names()
+            )
             from functools import reduce
             buffer = ";".join([
                 '%s,%d' % (
@@ -181,6 +185,7 @@ def scale_from_pipe(rpipe, whitelist):
     desired = init_desired_replicas(whitelist)
     while True:
         readval = fh.readline().strip()
+        logging.info(readval)
         if readval:
             logging.debug("Received %s" % readval)
             replicas = {}
@@ -193,8 +198,7 @@ def scale_from_pipe(rpipe, whitelist):
                 kube_des_rep = KUBE_CLIENT.read_namespaced_deployment_scale(dep, 'default').spec.replicas
 
                 # Get desired number of replicas by us
-                if dep not in desired:
-                    desired[dep] = get_desired_replicas(dep)
+                desired[dep] = get_desired_replicas(dep)  # Update
                 our_des_rep = desired[dep] + adjustment
                 our_des_rep = our_des_rep if our_des_rep > 0 else 1
                 logging.info("Deployment %s:\n\tIn kubernetes: %d\n\tDesired: %d" % (dep, kube_des_rep, our_des_rep))
@@ -216,10 +220,14 @@ def scale_from_pipe(rpipe, whitelist):
             sleep(1)
 
 
-def init_desired_replicas(whitelist):
+def get_deployment_names():
     deployments = KUBE_CLIENT.list_namespaced_deployment('default').items
+    return list(map(lambda d: d.metadata.name, deployments))
+
+
+def init_desired_replicas(whitelist):
     desired = {}
-    for dep in filter(lambda name: name not in whitelist, map(lambda d: d.metadata.name, deployments)):
+    for dep in filter(lambda name: name not in whitelist, get_deployment_names()):
         desired[dep] = get_desired_replicas(dep)
     return desired
 
