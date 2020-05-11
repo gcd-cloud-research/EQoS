@@ -137,7 +137,7 @@ def monitor_containers(config, wpipe):
 
 def get_desired_replicas(deployment):
     dep_data = KUBE_CLIENT.read_namespaced_deployment(deployment, 'default')
-    return dep_data.metadata.labels['io.kuberentes.replicas'] \
+    return int(dep_data.metadata.labels['io.kuberentes.replicas']) \
         if 'io.kubernetes.replicas' in dep_data.metadata.labels \
         else 1
 
