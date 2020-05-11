@@ -8,7 +8,7 @@ import json
 import sys
 from kubernetes import client
 from kubernetes.config import load_incluster_config
-from pluginmanager import PluginManager
+from plugins import PluginManager
 
 load_incluster_config()
 KUBE_CLIENT = client.AppsV1Api()

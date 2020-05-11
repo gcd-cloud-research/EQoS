@@ -1,4 +1,4 @@
-from plugins import *
+from .loadtracker import LoadTracker
 
 
 class PluginManager:
