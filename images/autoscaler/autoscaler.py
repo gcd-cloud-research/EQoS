@@ -14,7 +14,7 @@ from plugins import PluginManager
 load_incluster_config()
 KUBE_CLIENT = client.AppsV1Api()
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def from_json(class_to_instantiate, json_obj):

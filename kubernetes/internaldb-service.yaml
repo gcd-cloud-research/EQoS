@@ -10,7 +10,7 @@ metadata:
   name: internaldb
 spec:
   ports:
-  - name: "27017"
+  - name: "serviceport"
     port: 27017
     targetPort: 27017
   selector:

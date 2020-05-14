@@ -1,9 +1,12 @@
 import json
 from datetime import datetime, timedelta
+import logging
 
 import falcon
 import requests
 from kubernetes import client, config
+
+logging.basicConfig(level=logging.DEBUG)
 
 config.load_incluster_config()
 KUBE_API = client.CoreV1Api()
@@ -23,6 +26,30 @@ def add_dicts(dict1, dict2):
     return result
 
 
+class JsonStreamIterator:
+    # Does not accept lists as items, as it only needs to process performance objects
+    def __init__(self, response):
+        self.ite = response.iter_content(decode_unicode=True)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        string = ''
+        open_count = 0
+        for char in self.ite:
+            string += char.decode('utf-8')
+            if string[-1] == '{':
+                open_count += 1
+            if string[-1] == '}':
+                open_count -= 1
+                if not open_count:
+                    break
+        if not string:
+            raise StopIteration()
+        return json.loads(string)
+
+
 class Test:
     def on_get(self, req, resp):
         return
@@ -36,6 +63,7 @@ class Worker:
             resp.body = 'Body should contain pod objects'
             return
 
+        logging.debug("Querying for pods %s" % " ".join(map(lambda pod: pod['container'], pods)))
         # Get worker performance
         res = requests.get(PERFORMANCE_URL, data=json.dumps({
             'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL)).isoformat()},
@@ -43,14 +71,18 @@ class Worker:
             '$sort': [('usage.time', -1)]
         }))
 
+        logging.debug("Received response %d" % res.status_code)
+
         # If failed, return first pod
-        if res.status_code != 200 or not res.json():
+        if res.status_code != 200:
             resp.body = json.dumps(pods[0])
+            res.close()
             return
 
         # Aggregate performances for each container
         performance = {}
-        for entry in res.json():
+        for entry in JsonStreamIterator(res):
+            logging.debug(entry)
             container = entry['container']
             if container not in performance:
                 performance[container] = {'cpu': 0, 'memory': 0, 'count': 0}
@@ -58,6 +90,7 @@ class Worker:
             performance[container]['memory'] += entry['usage']['memory']
             performance[container]['count'] += 1
 
+        res.close()
         # Average CPU and memory load
         for perf in performance.values():
             perf['cpu'] /= perf['count']

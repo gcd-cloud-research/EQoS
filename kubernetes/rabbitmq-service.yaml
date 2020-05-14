@@ -5,7 +5,7 @@ metadata:
   name: rabbitmq
 spec:
   ports:
-  - name: "5672"
+  - name: "serviceport"
     port: 5672
     targetPort: 5672
   selector:

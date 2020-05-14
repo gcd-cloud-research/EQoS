@@ -16,7 +16,7 @@ ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 POSSIBLE_FILES = ['program', 'requirements']
 
 ROUTE_MAP = {
-    'mongo': 'externaldb',
+    'mongo': 'businessdb',
     'routine': 'producer'
 }
 

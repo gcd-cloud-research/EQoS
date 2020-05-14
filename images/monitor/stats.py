@@ -97,7 +97,7 @@ def get_container_usage(machine_specs):
         labels = cjson[container_id]['spec']['labels']
         if 'io.kubernetes.pod.namespace' not in labels or labels['io.kubernetes.pod.namespace'] != 'default':
             continue
-        container_id_short = container_id.split('/')[-1]
+        container_id_short = container_id.split('-')[-1].split('.')[0]  # Dependant on the deployment's nomenclature
         usage = get_usage(cjson[container_id], machine_specs)
         # Add usage only if it has not been reported yet
         if usage and usage['time'] != get_last_report(container_id_short):
