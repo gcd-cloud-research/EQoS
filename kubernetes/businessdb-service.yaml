@@ -11,9 +11,6 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - name: "serviceport"
-    port: 80
-    targetPort: 80
   - name: "27017"
     port: 27017
     targetPort: 27017

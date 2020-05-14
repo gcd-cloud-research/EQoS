@@ -16,12 +16,12 @@ ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 POSSIBLE_FILES = ['program', 'requirements']
 
 ROUTE_MAP = {
-    'mongo': 'businessdb',
+    'mongo': 'mongoapi',
     'routine': 'producer'
 }
 
 ALLOWED_ROUTES = [
-    r'^mongo',
+    r'^mongo/query/tasks',
     r'^routine$'
 ]
 
