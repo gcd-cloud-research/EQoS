@@ -18,17 +18,30 @@ else
   search=$(ls -F | grep '\/$')
 fi
 
+succ=0
+fail=0
 for dir in $search; do
   if [ -f "$dir/Dockerfile" ]; then
     log "Found Dockerfile for $dir, building"
     imagename=$(echo "$dir" | awk 'BEGIN{FS="/"}{print $1}')
     docker build "$dir" -t "$imagename"
     echo ""
-    
+
+    if [ "$?" -ne 0 ]; then
+      fail=$((fail + 1))
+      continue
+    fi
+
     if [ ! -z "$registry" ]; then
     	log "Pushing image to registry ($registry/$imagename)"
     	docker tag "$imagename" "$registry/$imagename"
     	docker push "$registry/$imagename"
+    fi
+
+    if [ "$?" -ne 0 ]; then
+      fail=$((fail + 1))
+    else
+      succ=$((succ + 1))
     fi
   fi
 done
@@ -36,4 +49,5 @@ if [ ! -z "$registry" ]; then
   log "Images built, cleaning"
 	docker image prune -f
 fi
-log "Done, exiting"
+log "Processed $((succ + fail)) images. $succ successes, $fail failures."
+log "Exiting"

@@ -52,8 +52,6 @@ class Query:
 
         Filters are obtained by body parameters.
         """
-        from datetime import datetime
-        print("%s - Received request" % datetime.now().isoformat(), flush=True)
         query = req.media if req.media else {}
 
         if 'id' in query:
@@ -71,11 +69,8 @@ class Query:
         else:
             resp.status = falcon.HTTP_404
             return
-        print("%s - Queried" % datetime.now().isoformat(), flush=True)
         query_result = query_result.sort(sort) if sort else query_result
-        print("%s - Sorted" % datetime.now().isoformat(), flush=True)
         resp.stream = map(lambda x: Query.format_elem(x), query_result)
-        print("%s - Request completed" % datetime.now().isoformat(), flush=True)
 
     @staticmethod
     def format_elem(elem):

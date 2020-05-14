@@ -101,7 +101,6 @@ def monitor_containers(config, wpipe):
     plugin_manager = PluginManager(config)
     while True:
         alarm(config.update_seconds)
-        logging.warning("Making request")
         res = None
         try:
             res = requests.get(
@@ -114,7 +113,7 @@ def monitor_containers(config, wpipe):
                 timeout=config.update_seconds / 2,
                 stream=True
             )
-            logging.warning("Received response. %d" % res.elapsed.total_seconds())
+            logging.info("Received response. Time: %d" % res.elapsed.total_seconds())
         except (ex.ConnectionError, ex.ConnectTimeout, ex.ReadTimeout) as e:
             logging.warning("Could not connect to mongoapi: %s" % e)
             os.write(wpipe, ';\n'.encode('utf-8'))
@@ -181,8 +180,10 @@ def get_desired_replicas(deployment):
 
 
 def scale_from_pipe(rpipe, whitelist):
+    from copy import deepcopy
     fh = os.fdopen(rpipe)
-    desired = init_desired_replicas(whitelist)
+    base_values = init_desired_replicas(whitelist)
+    desired = deepcopy(base_values)
     while True:
         readval = fh.readline().strip()
         logging.info(readval)
@@ -194,11 +195,17 @@ def scale_from_pipe(rpipe, whitelist):
                     else []:
                 if dep in whitelist:
                     continue
+                # Update desired replicas if base values have changed
+                new_val = get_desired_replicas(dep)
+                if new_val != base_values[dep]:
+                    # Change desired replicas based on perceived increment or decrement
+                    desired[dep] += new_val - base_values[dep]
+                    base_values[dep] = new_val
+
                 # Get current number of desired replicas by Kubernetes
                 kube_des_rep = KUBE_CLIENT.read_namespaced_deployment_scale(dep, 'default').spec.replicas
 
                 # Get desired number of replicas by us
-                desired[dep] = get_desired_replicas(dep)  # Update
                 our_des_rep = desired[dep] + adjustment
                 our_des_rep = our_des_rep if our_des_rep > 0 else 1
                 logging.info("Deployment %s:\n\tIn kubernetes: %d\n\tDesired: %d" % (dep, kube_des_rep, our_des_rep))
