@@ -9,6 +9,7 @@ metadata:
     io.kompose.service: businessdb
   name: businessdb
 spec:
+  type: NodePort
   ports:
   - name: "serviceport"
     port: 27017

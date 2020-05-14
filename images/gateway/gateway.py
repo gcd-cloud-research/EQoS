@@ -83,8 +83,12 @@ def get_port(pod):
         lambda candidate_port: candidate_port.name == 'serviceport',
         KUBE_API.list_namespaced_service('default', label_selector=label).items[0].spec.ports
     ))
-    if len(ports) == 0:
-        raise RuntimeError("No service available for pod with label %s" % label)
+    if not ports:
+        app.logger.error("No service available for pod with label %s" % label)
+        raise RuntimeError()
+    if not ports[0].node_port:
+        app.logger.error("Pod with label %s has no externally accessible port - is the service NodePort?" % label)
+        raise RuntimeError()
     return ports[0].node_port
 
 
