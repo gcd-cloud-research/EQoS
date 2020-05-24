@@ -55,13 +55,15 @@ class Query:
         query = req.media if req.media else {}
 
         if 'id' in query:
-            query['_id'] = ObjectId(query['id'])
-            del query['id']
+            query['_id'] = ObjectId(query.pop('id'))
+
+        stream = collection == 'performance'
+        if 'stream' in query:
+            stream = query.pop('stream')
 
         sort = None
         if '$sort' in query:
-            sort = query['$sort']
-            del query['$sort']
+            sort = query.pop('$sort')
         if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
             query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
         elif collection in BUSINESS_CLIENT.ehqos.list_collection_names():
@@ -69,18 +71,24 @@ class Query:
         else:
             resp.status = falcon.HTTP_404
             return
+
         query_result = query_result.sort(sort) if sort else query_result
-        resp.stream = map(lambda x: Query.format_elem(x), query_result)
+        query_result = map(lambda x: Query.format_id(x), query_result)
+        if stream:
+            resp.stream = map(lambda x: json.dumps(x).encode('utf-8'), query_result)
+        else:
+            resp.body = json.dumps(list(query_result))
 
     @staticmethod
-    def format_elem(elem):
-        elem['id'] = str(elem['_id'])
-        del elem['_id']
-        return json.dumps(elem).encode('utf-8')
+    def format_id(elem):
+        elem['id'] = str(elem.pop('_id'))
+        return elem
 
     def on_get_all(self, req, resp):
         """Return all available collections."""
-        resp.body = json.dumps(INTERNAL_CLIENT.ehqos.list_collection_names())
+        resp.body = json.dumps(
+            INTERNAL_CLIENT.ehqos.list_collection_names() + BUSINESS_CLIENT.ehqos.list_collection_names()
+        )
 
     def on_post_all(self, req, resp):
         """Bulk upload into an existing or new collection."""

@@ -63,11 +63,12 @@ class Worker:
             resp.body = 'Body should contain pod objects'
             return
 
-        logging.debug("Querying for pods %s" % " ".join(map(lambda pod: pod['container'], pods)))
+        container_names = map(lambda pod: pod['container'], pods)
+        logging.debug("Querying for pods %s" % " ".join(container_names))
         # Get worker performance
         res = requests.get(PERFORMANCE_URL, data=json.dumps({
             'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL)).isoformat()},
-            'container': {'$in': list(map(lambda pod: pod['container'], pods))},
+            'container': {'$in': list(container_names)},
             '$sort': [('usage.time', -1)]
         }))
 
@@ -91,6 +92,11 @@ class Worker:
             performance[container]['count'] += 1
 
         res.close()
+        # If there is no data, return first pod
+        if not performance:
+            resp.body = json.dumps(pods[0])
+            return
+
         # Average CPU and memory load
         for perf in performance.values():
             perf['cpu'] /= perf['count']
@@ -113,12 +119,13 @@ class SystemLoad:
         }))
 
         can_run_job = False
-        accums = {}
-        if res.status_code == 200 and res.json():
+        if res.status_code != 200:
+            res.close()
+        else:
             included_hosts = []
             host_usages = []
             # Last usage of each host
-            for entry in res.json():
+            for entry in JsonStreamIterator(res):
                 if entry['host'] not in included_hosts:
                     del entry['usage']['time']
                     host_usages.append(entry['usage'])
@@ -131,7 +138,7 @@ class SystemLoad:
                 if value / len(included_hosts) < JOB_CREATION_THRESHOLD:
                     can_run_job = True
 
-        resp.body = json.dumps({'status': can_run_job, 'accums': accums})
+        resp.body = json.dumps({'status': can_run_job})
 
 
 api = falcon.API()

@@ -18,12 +18,13 @@ chan.queue_declare(queue='jobs', durable=True)
 
 registry = os.environ['REGISTRY']
 LOAD_URL = 'http://qos:8000/sysload'
+STATUS_URL = 'http://mongoapi:8000/routine/'
 
 
 def can_create_job():
     from datetime import datetime
     res = requests.get(LOAD_URL)
-    logging.info(datetime.now().isoformat(), res.text)
+    logging.info('%s - %s' % (datetime.now().isoformat(), res.text))
     return res.status_code == 200 and res.json()['status']
 
 
@@ -62,10 +63,12 @@ def callback(channel, method, properties, body):
             logging.info("Created")
             logging.debug(res)
             channel.basic_ack(delivery_tag=method.delivery_tag)
+            requests.post(STATUS_URL + routine_id, {'status': 'QUEUED'})
         except ApiException as exception:
             logging.error("Could not create job: %s" % exception)
     else:
-        logging.info("LoadBalancer returned False. Not creating job")
+        logging.info("LoadBalancer did not approve. Not creating job")
+        requests.post(STATUS_URL + routine_id, {'status': 'HELD'})
         time.sleep(10)
 
 

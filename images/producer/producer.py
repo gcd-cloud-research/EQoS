@@ -23,6 +23,8 @@ docker_api = docker.from_env()
 # Prepare pipe for sending new routines
 rpipe, wpipe = os.pipe()
 
+ROUTINE_URL = 'http://mongoapi:8000/routine/'
+
 
 class Requirements:
     def __init__(self):
@@ -72,6 +74,9 @@ def build_and_push(rid, name):
     docker_api.images.build(path=routine_dir, tag=image_tag)
     docker_api.images.push(image_tag)
 
+    # Update status
+    requests.post(ROUTINE_URL, {'status': 'BUILT'})
+
     # Cleanup
     docker_api.images.remove(image=image_tag)
     shutil.rmtree(routine_dir)
@@ -81,7 +86,7 @@ def build_and_push(rid, name):
 
 def create_routine(routine_name):
     # Initialise routine in database
-    res = requests.post('http://mongoapi:8000/routine/new', data=json.dumps({
+    res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
         'name': routine_name,
         'issuer': '?'
     }))

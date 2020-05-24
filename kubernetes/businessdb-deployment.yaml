@@ -32,7 +32,6 @@ spec:
         name: businessdb
         ports:
         - containerPort: 27017
-        - containerPort: 80
         resources: {}
       restartPolicy: Always
       volumes:
