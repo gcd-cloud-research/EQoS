@@ -48,7 +48,7 @@ def test():
     return ''
 
 
-def build_and_push(rid, name):
+def build_and_push(rid, extension):
     """Prepare a new routine, build it and push it."""
     os.chdir('/received')
 
@@ -57,16 +57,15 @@ def build_and_push(rid, name):
     shutil.copytree('/routine', routine_dir)
 
     # Move submitted script to routine folder, changing name but keeping extension
-    name_wo_extension = '.'.join(name.split('.')[:-1])
-    extension = name.split('.')[-1]
-    shutil.move('%s/%s' % (name_wo_extension, name), '%s/worker.%s' % (routine_dir, extension))
+    filename = '%s.%s' % (rid, extension)
+    shutil.move('%s/%s' % (rid, filename), '%s/worker.%s' % (routine_dir, extension))
 
     # Update requirements.txt
     requirements = Requirements()
-    if 'requirements.txt' in os.listdir(name_wo_extension):
-        requirements.parse_requirements(name_wo_extension)
+    if 'requirements.txt' in os.listdir(rid):
+        requirements.parse_requirements(rid)
     requirements.parse_requirements(routine_dir)
-    shutil.rmtree(name_wo_extension)
+    shutil.rmtree(rid)
     requirements.write_requirements(routine_dir)
 
     # Build and push image
@@ -84,7 +83,22 @@ def build_and_push(rid, name):
     os.chdir('/')
 
 
-def create_routine(routine_name):
+def create_routine(routine_id, extension):
+    # Build Docker image for routine and upload to registry
+    build_and_push(routine_id, extension)
+
+    # Submit job for creation
+    conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+    chan = conn.channel()
+    chan.basic_publish(
+        exchange='',
+        routing_key='jobs',
+        body='%s|%s' % (routine_id, extension)
+    )
+    conn.close()
+
+
+def initialise_in_db(routine_name):
     # Initialise routine in database
     res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
         'name': routine_name,
@@ -93,21 +107,7 @@ def create_routine(routine_name):
     if res.status_code != 200:
         app.logger.error("Error submitting routine to database: " + res.text)
         abort(500)
-    routine_id = res.json()['id']  # Will represent the job in the database and the image
-
-    # Build Docker image for routine and upload to registry
-    build_and_push(routine_id, routine_name)
-
-    # Submit job for creation
-    conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
-    chan = conn.channel()
-    chan.basic_publish(
-        exchange='',
-        routing_key='jobs',
-        body='%s|%s' % (routine_id, routine_name.split('.')[-1])
-    )
-    conn.close()
-
+    return res.json()['id']  # Will represent the job in the database and the image
 
 
 def routine_watcher(reader):
@@ -115,7 +115,8 @@ def routine_watcher(reader):
     while True:
         name = readfh.readline().strip()
         if name != '':
-            create_routine(name)
+            rid, extension = name.split('.')
+            create_routine(rid, extension)
         else:
             time.sleep(1)
 
@@ -127,20 +128,22 @@ def new_routine():
 
     f = request.files['program']
     name = secure_filename(f.filename)
-    name_wo_extension = '.'.join(name.split('.')[:-1])
-    if name.split('.')[-1] not in ['py', 'r']:
+    extension = name.split('.')[-1]
+    if extension not in ['py', 'r']:
         abort(400)
 
-    os.makedirs('/received/' + name_wo_extension)
+    rid = initialise_in_db(name)
+    filename = '%s.%s' % (rid, extension)
+    os.makedirs('/received/' + rid)
 
     if 'requirements' in request.files:
         req = request.files['requirements']
         if secure_filename(req.filename).split('.')[-1] != 'txt':
             abort(400)
-        req.save('/received/%s/requirements.txt' % name_wo_extension)
+        req.save('/received/%s/requirements.txt' % rid)
 
-    f.save('/received/%s/%s' % (name_wo_extension, name))
-    os.write(wpipe, ('%s\n' % name).encode('utf-8'))
+    f.save('/received/%s/%s' % (rid, filename))
+    os.write(wpipe, ('%s\n' % filename).encode('utf-8'))
     return ''
 
 
