@@ -7,6 +7,7 @@ metadata:
   creationTimestamp: null
   labels:
     io.kompose.service: mongoapi
+    io.kubernetes.replicas: '2'
   name: mongoapi
 spec:
   selector:
