@@ -30,11 +30,6 @@ INTERNAL_CLIENT = pymongo.MongoClient(
     (conf['internal']['mongo_user'], conf['internal']['mongo_pass'])
 )
 
-BUSINESS_CLIENT = pymongo.MongoClient(
-    "mongodb://%s:%s@businessdb:27017" %
-    (conf['business']['mongo_user'], conf['business']['mongo_pass'])
-)
-
 
 class Test:
     """Endpoint for checking that service is up."""
@@ -66,8 +61,6 @@ class Query:
             sort = query.pop('$sort')
         if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
             query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
-        elif collection in BUSINESS_CLIENT.ehqos.list_collection_names():
-            query_result = BUSINESS_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
         else:
             resp.status = falcon.HTTP_404
             return
@@ -86,9 +79,7 @@ class Query:
 
     def on_get_all(self, req, resp):
         """Return all available collections."""
-        resp.body = json.dumps(
-            INTERNAL_CLIENT.ehqos.list_collection_names() + BUSINESS_CLIENT.ehqos.list_collection_names()
-        )
+        resp.body = json.dumps(INTERNAL_CLIENT.ehqos.list_collection_names())
 
     def on_post_all(self, req, resp):
         """Bulk upload into an existing or new collection."""
@@ -113,7 +104,7 @@ class Routine:
             resp.status = falcon.HTTP_400
             return
 
-        result = BUSINESS_CLIENT.ehqos.tasks.insert_one({
+        result = INTERNAL_CLIENT.ehqos.tasks.insert_one({
             'name': data["name"],
             'status': 'PENDING',
             'issuer': data["issuer"],
@@ -130,7 +121,7 @@ class Routine:
         if data['status'] == 'SUCCESS' or data["status"] == 'FAILURE':
             data['end_time'] = datetime.utcnow().isoformat()
 
-        BUSINESS_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
+        INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
 
 
 class Performance:
@@ -147,8 +138,6 @@ class Delete:
     def on_delete(self, req, resp):
         for collection in INTERNAL_CLIENT.ehqos.list_collection_names():
             INTERNAL_CLIENT.ehqos.drop_collection(collection)
-        for collection in BUSINESS_CLIENT.ehqos.list_collection_names():
-            BUSINESS_CLIENT.ehqos.drop_collection(collection)
 
 
 api = falcon.API()
