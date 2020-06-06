@@ -144,7 +144,7 @@ def new_routine():
 
     f.save('/received/%s/%s' % (rid, filename))
     os.write(wpipe, ('%s\n' % filename).encode('utf-8'))
-    return ''
+    return {'id': rid}
 
 
 if __name__ == '__main__':

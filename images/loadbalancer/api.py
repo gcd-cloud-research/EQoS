@@ -118,7 +118,7 @@ class SystemLoad:
             '$sort': [('usage.time', -1)]
         }))
 
-        can_run_job = False
+        can_run_job = True
         if res.status_code != 200:
             res.close()
         else:
@@ -135,8 +135,8 @@ class SystemLoad:
             from functools import reduce
             accums = reduce(add_dicts, host_usages)
             for value in accums.values():
-                if value / len(included_hosts) < JOB_CREATION_THRESHOLD:
-                    can_run_job = True
+                if value / len(included_hosts) > JOB_CREATION_THRESHOLD:
+                    can_run_job = False
 
         resp.body = json.dumps({'status': can_run_job})
 

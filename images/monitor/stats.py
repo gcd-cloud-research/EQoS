@@ -41,22 +41,26 @@ def nanosecs(ts):
 
 
 def get_stats(entry):
-    return entry['timestamp'], entry['cpu']['usage']['total'], entry['memory']['usage']
+    return \
+        entry['timestamp'],\
+        entry['cpu']['usage']['total'],\
+        len(entry['cpu']['usage']['per_cpu_usage']),\
+        entry['memory']['usage']
 
 
-def get_usage(part, machine_stats):
+def get_usage(part):
     part_stats = part['stats']
     if len(part_stats) < 2:
         return None
     # Extract relevant data
-    time, cpu, mem = get_stats(part_stats[-1])
-    prev_time, prev_cpu, _ = get_stats(part_stats[-2])
+    time, cpu, num_cores, mem = get_stats(part_stats[-1])
+    prev_time, prev_cpu, _, _ = get_stats(part_stats[-2])
 
     # Calculate CPU and memory usage
     cpu_usage = 0
     if time != prev_time:
         cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
-    cpu_percent = float(cpu_usage) / float(machine_stats["cores"]) * 100  # Over number of host cores
+    cpu_percent = float(cpu_usage) / float(num_cores) * 100  # Over number of host cores
     mem_percent = float(mem) / float(part['spec']['memory']['limit']) * 100  # Over container's reservation
     return {
         "time": time,
@@ -65,14 +69,13 @@ def get_usage(part, machine_stats):
     }
 
 
-def get_machine_usage(machine_specs):
+def get_machine_usage(hostname):
     try:
         cjson = requests.get(URL + "containers").json()
     except requests.ConnectionError:
         return None
 
-    hostname = machine_specs['hostname']
-    usage = get_usage(cjson, machine_specs)
+    usage = get_usage(cjson)
 
     # If this timestamp has been pushed, do not push it again
     if not usage or usage['time'] == get_last_report(hostname):
@@ -85,7 +88,7 @@ def get_machine_usage(machine_specs):
     }]
 
 
-def get_container_usage(machine_specs):
+def get_container_usage():
     try:
         cjson = requests.get(URL + "docker").json()
     except requests.ConnectionError:
@@ -98,7 +101,7 @@ def get_container_usage(machine_specs):
         if 'io.kubernetes.pod.namespace' not in labels or labels['io.kubernetes.pod.namespace'] != 'default':
             continue
         container_id_short = container_id.split('-')[-1].split('.')[0]  # Dependant on the deployment's nomenclature
-        usage = get_usage(cjson[container_id], machine_specs)
+        usage = get_usage(cjson[container_id])
         # Add usage only if it has not been reported yet
         if usage and usage['time'] != get_last_report(container_id_short):
             usages.append({
@@ -116,32 +119,17 @@ def get_container_usage(machine_specs):
     return usages
 
 
-def get_machine_specs():
-    try:
-        machine_json = requests.get(URL + "machine").json()
-    except requests.ConnectionError:
-        return None
-
+def get_hostname():
     with open("hostname") as fh:
         hostname = fh.read().strip()
-
-    return {
-        "hostname": hostname,
-        "cores": machine_json['num_cores'],
-        "memory": machine_json['memory_capacity']
-    }
+    return hostname
 
 
 if __name__ == "__main__":
-    specs = get_machine_specs()
-    if not specs:
-        print("Specs not available")
-        exit(1)
-
-    host_performance = get_machine_usage(specs)
+    host_performance = get_machine_usage(get_hostname())
     if host_performance:
         requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
 
-    container_performance = get_container_usage(specs)
+    container_performance = get_container_usage()
     if container_performance:
         requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: cpuwaster
+  name: cpuwaster
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: cpuwaster
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: cpuwaster
+    spec:
+      containers:
+      - image: 192.168.101.76:5000/cpuwaster
+        name: cpuwaster
+        resources: {}
+        volumeMounts:
+          - mountPath: /hostname
+            name: cpuwaster-claim0
+      volumes:
+      - name: cpuwaster-claim0
+        hostPath:
+          path: /etc/hostname
+      restartPolicy: Always

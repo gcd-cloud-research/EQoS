@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -7,7 +8,7 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 import requests
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s')
 
 config.load_incluster_config()
 kube_api = client.BatchV1Api()
@@ -21,10 +22,19 @@ LOAD_URL = 'http://qos:8000/sysload'
 STATUS_URL = 'http://mongoapi:8000/routine/'
 
 
+def change_job_status(rid, st):
+    res = requests.post(STATUS_URL + rid, json.dumps({'status': st}))
+    if res.status_code != 200:
+        logging.warning("Could not change job status: %s" % res.text)
+    else:
+        logging.info('Status changed to %s' % st)
+
+
 def can_create_job():
-    from datetime import datetime
-    res = requests.get(LOAD_URL)
-    logging.info('%s - %s' % (datetime.now().isoformat(), res.text))
+    try:
+        res = requests.get(LOAD_URL)
+    except requests.ConnectionError:
+        return False
     return res.status_code == 200 and res.json()['status']
 
 
@@ -63,18 +73,23 @@ def callback(channel, method, properties, body):
             logging.info("Created")
             logging.debug(res)
             channel.basic_ack(delivery_tag=method.delivery_tag)
-            requests.post(STATUS_URL + routine_id, {'status': 'QUEUED'})
+            change_job_status(routine_id, 'QUEUED')
         except ApiException as exception:
             logging.error("Could not create job: %s" % exception)
     else:
         logging.info("LoadBalancer did not approve. Not creating job")
-        requests.post(STATUS_URL + routine_id, {'status': 'HELD'})
+        change_job_status(routine_id, 'HOLD')
+        channel.basic_nack(method.delivery_tag)
         time.sleep(10)
 
 
 if __name__ == '__main__':
-    chan.basic_consume(
-        queue='jobs',
-        on_message_callback=callback
-    )
-    chan.start_consuming()
+    while True:
+        if os.fork() == 0:
+            chan.basic_consume(
+                queue='jobs',
+                on_message_callback=callback
+            )
+            chan.start_consuming()
+        else:
+            os.wait()

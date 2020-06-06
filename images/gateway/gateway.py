@@ -150,6 +150,7 @@ def on_request(path):
         return ''
 
     if not is_allowed(path):
+        app.logger.info('Unauthorized route')
         abort(401)
         return
 
@@ -161,6 +162,7 @@ def on_request(path):
     # Get the service related to this path
     mapped_service = ROUTE_MAP[service] if service in ROUTE_MAP else ''
     if not mapped_service:
+        app.logger.info('Desired service not in mapping')
         abort(404)
         return
 
@@ -183,7 +185,7 @@ def on_request(path):
 
     # Get body
     app.logger.info("Processing body")
-    data = request.get_json() if request.is_json else None
+    data = json.dumps(request.get_json()) if request.is_json else None
 
     # Route request
     app.logger.info("Routing %s to %s" % (request.method, url))

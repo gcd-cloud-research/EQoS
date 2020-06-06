@@ -14,7 +14,8 @@ from plugins import PluginManager
 load_incluster_config()
 KUBE_CLIENT = client.AppsV1Api()
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+received = False
 
 
 def from_json(class_to_instantiate, json_obj):
@@ -97,10 +98,12 @@ class JsonStreamIterator:
 
 
 def monitor_containers(config, wpipe):
+    global received
     stepback_time = timedelta(seconds=config.update_seconds)
     plugin_manager = PluginManager(config)
     while True:
         alarm(config.update_seconds)
+        received = False
         res = None
         try:
             res = requests.get(
@@ -169,7 +172,8 @@ def monitor_containers(config, wpipe):
             ])
             logging.debug(buffer)
             os.write(wpipe, (buffer + '\n').encode('utf-8'))
-        pause()
+        if not received:
+            pause()
 
 
 def get_desired_replicas(deployment):
@@ -186,7 +190,7 @@ def scale_from_pipe(rpipe, whitelist):
     desired = deepcopy(base_values)
     while True:
         readval = fh.readline().strip()
-        logging.info(readval)
+        logging.debug(readval)
         if readval:
             logging.debug("Received %s" % readval)
             replicas = {}
@@ -208,7 +212,7 @@ def scale_from_pipe(rpipe, whitelist):
                 # Get desired number of replicas by us
                 our_des_rep = desired[dep] + adjustment
                 our_des_rep = our_des_rep if our_des_rep > 0 else 1
-                logging.info("Deployment %s:\n\tIn kubernetes: %d\n\tDesired: %d" % (dep, kube_des_rep, our_des_rep))
+                logging.debug("Deployment %s:\n\tIn kubernetes: %d\n\tDesired: %d" % (dep, kube_des_rep, our_des_rep))
 
                 # Record deployments in which desires differ
                 if kube_des_rep != our_des_rep:
@@ -247,7 +251,9 @@ if __name__ == '__main__':
 
     conf = Config.load(filename)
 
-    def sign_debug(sig, frame):
+    def sign_received(sig, frame):
+        global received
+        received = True
         print(logging.debug("(ALRM: %d) Received signal %d" % (SIGALRM, sig)))
 
     rscale, wscale = os.pipe()
@@ -262,7 +268,7 @@ if __name__ == '__main__':
 
     while True:
         if os.fork() == 0:
-            signal(SIGALRM, sign_debug)
+            signal(SIGALRM, sign_received)
             monitor_containers(conf, wscale)
         else:
             pid, status = os.wait()

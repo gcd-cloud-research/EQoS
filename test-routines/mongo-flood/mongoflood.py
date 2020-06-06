@@ -1,19 +1,31 @@
 import os
+import logging
+import random
 
-import requests
-import json
-from datetime import datetime, timedelta
+from pymongo import MongoClient, DESCENDING
 
-with open('results.json', 'w+') as fh:
-    fh.write('[')
+PROCESSES = 100
+REQUESTS = 100
+logging.basicConfig(level=logging.WARNING, format='PID %(process)d - %(levelname)s: %(message)s')
 
-for _ in range(200):
-    if os.fork() == 0:
-        res = requests.get('http://mongoapi:8000/query/performance', data=json.dumps({
-            'usage.time': {'$lte': (datetime.utcnow()).isoformat()},
-            '$sort': [('usage.time', -1)]
-        }))
-        with open('results.json', 'a') as fh:
-            fh.write('%d,' % len(res.json()) if res.status_code != 200 else 0)
 
-fh.write(']')
+children = []
+for _ in range(PROCESSES):
+    pid = os.fork()
+    if not pid:
+        random.seed(os.getpid())
+        client = MongoClient('mongodb://admin:toor@externaldb:27017')
+        for i in range(REQUESTS):
+            try:
+                logging.info('Requesting %d' % i)
+                client.test.random.find().sort('test1', DESCENDING)
+                client.test.random.find({'test2': {'$gte': 0}, 'test4': {'$lte': 0}}).sort('test1', DESCENDING)
+                client.test.random.update_many({'test0': {'$lt': 0}}, {'$set': {'test0': random.randint(-10000, 0)}})
+                logging.info('Request %d successful.' % i)
+            except:
+                logging.error('Error on request')
+        exit(0)
+    children.append(pid)
+for pid in children:
+    os.waitpid(pid, 0)
+logging.info("Finished successfully")
