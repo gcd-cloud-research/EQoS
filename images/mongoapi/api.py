@@ -59,8 +59,13 @@ class Query:
         sort = None
         if '$sort' in query:
             sort = query.pop('$sort')
+
+        limit = 0
+        if '$limit' in query:
+            limit = query.pop('$limit')
+
         if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
-            query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=100 if not query else 0)
+            query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=limit)
         else:
             resp.status = falcon.HTTP_404
             return

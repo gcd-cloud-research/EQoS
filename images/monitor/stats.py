@@ -57,9 +57,10 @@ def get_usage(part):
     prev_time, prev_cpu, _, _ = get_stats(part_stats[-2])
 
     # Calculate CPU and memory usage
-    cpu_usage = 0
-    if time != prev_time:
-        cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
+    if time == prev_time:
+        return None
+
+    cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
     cpu_percent = float(cpu_usage) / float(num_cores) * 100  # Over number of host cores
     mem_percent = float(mem) / float(part['spec']['memory']['limit']) * 100  # Over container's reservation
     return {

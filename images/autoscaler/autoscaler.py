@@ -116,7 +116,7 @@ def monitor_containers(config, wpipe):
                 timeout=config.update_seconds / 2,
                 stream=True
             )
-            logging.info("Received response. Time: %d" % res.elapsed.total_seconds())
+            logging.debug("Received response. Time: %d" % res.elapsed.total_seconds())
         except (ex.ConnectionError, ex.ConnectTimeout, ex.ReadTimeout) as e:
             logging.warning("Could not connect to mongoapi: %s" % e)
             os.write(wpipe, ';\n'.encode('utf-8'))

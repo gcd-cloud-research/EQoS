@@ -1,11 +1,11 @@
 {
   "scaling": {
-    "min_load": 40,
-    "max_load": 80,
+    "min_load": 30,
+    "max_load": 60,
     "max_load_nowait": 90,
     "wait_seconds": 10,
     "tolerance": 5,
-    "grace_period": 5
+    "grace_period": 20
   },
   "update_seconds": 5,
   "exclude": ["monitor"],
