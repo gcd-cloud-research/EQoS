@@ -6,6 +6,6 @@ COPY requirements.txt /
 RUN pip install -r requirements.txt
 
 COPY consumer.py /
-ENV REGISTRY "192.168.101.76:5000"
+ENV REGISTRY "192.168.101.63:5000"
 
 CMD ["python", "consumer.py"]

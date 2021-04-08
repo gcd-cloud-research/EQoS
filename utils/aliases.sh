@@ -1,4 +1,4 @@
-export REGISTRY="192.168.101.76:5000"
+export REGISTRY="192.168.101.63:5000"
 
 ROOT_DIR=$(pwd)
 export KUBE_FILE_DIR="$ROOT_DIR"/kubernetes

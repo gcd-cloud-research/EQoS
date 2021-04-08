@@ -12,7 +12,7 @@ RUN pip install -r requirements.txt
 COPY routine /routine
 COPY producer.py /
 
-ENV REGISTRY "192.168.101.76:5000"
+ENV REGISTRY "192.168.101.63:5000"
 ENV DOCKER_HOST "unix:///var/run/docker.sock"
 
 CMD ["python", "producer.py"]
