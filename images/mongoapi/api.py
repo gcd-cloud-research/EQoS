@@ -5,6 +5,8 @@ import sys
 from datetime import datetime
 from bson.objectid import ObjectId
 
+from flask import Flask
+app = Flask(__name__)
 
 JSON_CONF_STRUCTURE = {  # '{}' represents a value
         'internal': {'mongo_user': {}, 'mongo_pass': {}},
@@ -49,13 +51,15 @@ class Query:
         """
         query = req.media if req.media else {}
 
-        print('Query:', query)
-        print('Collection:', collection)
+        app.logger.info("Query %s" % (query))
+        app.logger.info("Collection %s" % (collection))
 
         if 'ids' in query:
             ids = query.pop('ids')
             print('IDs:', ids)
+            app.logger.info("IDs %s" % (ids))
             query["_id"] = {"$in": [ObjectId(x) for x in ids]}
+            app.logger.info("Query: %s" % (query))
 
         if 'id' in query:
             query['_id'] = ObjectId(query.pop('id'))
