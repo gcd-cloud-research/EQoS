@@ -22,6 +22,7 @@ ROUTE_MAP = {
 
 ALLOWED_ROUTES = [
     r'^mongo/query/tasks',
+    r'^mongo/query/performance',
     r'^routine$'
 ]
 

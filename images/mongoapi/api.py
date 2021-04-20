@@ -49,6 +49,14 @@ class Query:
         """
         query = req.media if req.media else {}
 
+        print('Query:', query)
+        print('Collection:', collection)
+
+        if 'ids' in query:
+            ids = query.pop('ids')
+            print('IDs:', ids)
+            query["_id"] = {"$in": [ObjectId(x) for x in ids]}
+
         if 'id' in query:
             query['_id'] = ObjectId(query.pop('id'))
 
