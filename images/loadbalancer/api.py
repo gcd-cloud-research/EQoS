@@ -80,6 +80,8 @@ class Worker:
             res.close()
             return
 
+        logging.debug("Response: %s", res)
+
         # Aggregate performances for each container
         performance = {}
         for entry in JsonStreamIterator(res):
