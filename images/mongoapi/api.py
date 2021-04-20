@@ -57,9 +57,9 @@ class Query:
         if 'ids' in query:
             ids = query.pop('ids')
             print('IDs:', ids)
-            app.logger.info("IDs %s" % (ids))
+            logging.debug("IDs %s" % (ids))
             query["_id"] = {"$in": [ObjectId(x) for x in ids]}
-            app.logger.info("Query: %s" % (query))
+            logging.debug("Query: %s" % (query))
 
         if 'id' in query:
             query['_id'] = ObjectId(query.pop('id'))
