@@ -4,9 +4,9 @@ import json
 import sys
 from datetime import datetime
 from bson.objectid import ObjectId
+import logging
 
-from flask import Flask
-app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 JSON_CONF_STRUCTURE = {  # '{}' represents a value
         'internal': {'mongo_user': {}, 'mongo_pass': {}},
@@ -51,8 +51,8 @@ class Query:
         """
         query = req.media if req.media else {}
 
-        app.logger.info("Query %s" % (query))
-        app.logger.info("Collection %s" % (collection))
+        logging.debug("Query %s" % (query))
+        logging.debug("Collection %s" % (collection))
 
         if 'ids' in query:
             ids = query.pop('ids')
