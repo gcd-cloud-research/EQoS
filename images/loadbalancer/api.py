@@ -85,6 +85,9 @@ class Worker:
         # Aggregate performances for each container
         performance = {}
         for entry in JsonStreamIterator(res):
+            if not entry:
+                continue
+
             logging.debug(entry)
             container = entry['container']
             if container not in performance:
