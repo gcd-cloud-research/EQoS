@@ -51,15 +51,9 @@ class Query:
         """
         query = req.media if req.media else {}
 
-        logging.debug("Query %s" % (query))
-        logging.debug("Collection %s" % (collection))
-
         if 'ids' in query:
             ids = query.pop('ids')
-            print('IDs:', ids)
-            logging.debug("IDs %s" % (ids))
             query["_id"] = {"$in": [ObjectId(x) for x in ids]}
-            logging.debug("Query: %s" % (query))
 
         if 'id' in query:
             query['_id'] = ObjectId(query.pop('id'))
@@ -157,11 +151,36 @@ class Delete:
             INTERNAL_CLIENT.ehqos.drop_collection(collection)
 
 
+class TaskPerformance:
+    """Retrieves all the performance metrics for a """
+
+    def on_get(self, req, resp):
+        """
+        Return results from given collection with given filters.
+
+        Filters are obtained by body parameters.
+        """
+        query = req.media if req.media else {}
+
+        if 'id' in query:
+            id = query.pop('id')
+            query['_id'] = ObjectId(id) if type(id) == "str" else {"$in": [ObjectId(x) for x in id]}
+
+        query_result = INTERNAL_CLIENT.ehqos['tasks'].find(query)
+        resp.body = json.dumps(list(query_result))
+        logging.debug("Stream: %s" % (resp.body))
+#        query_result = INTERNAL_CLIENT.ehqos['performance'].find(query)
+ #       query_result = map(lambda x: Query.format_id(x), query_result)
+  #      resp.stream = map(lambda x: json.dumps(x).encode('utf-8'), query_result)
+   #     logging.debug("Stream: %s" % (resp.stream))
+
+
 api = falcon.API()
 testResource = Test()
 queryResource = Query()
 routineResource = Routine()
 performanceResource = Performance()
+taskperformanceResource = TaskPerformance()
 deleteResource = Delete()
 api.add_route('/test', testResource)
 api.add_route('/query/{collection}', queryResource)
@@ -169,4 +188,5 @@ api.add_route('/query', queryResource, suffix="all")
 api.add_route('/routine/new', routineResource, suffix="create")
 api.add_route('/routine/{routine_id}', routineResource, suffix="update")
 api.add_route('/performance', performanceResource)
+api.add_route('/taskperformance', taskperformanceResource)
 api.add_route('/', deleteResource)
