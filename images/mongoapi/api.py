@@ -164,15 +164,22 @@ class TaskPerformance:
 
         if 'id' in query:
             id = query.pop('id')
-            query['_id'] = ObjectId(id) if type(id) == "str" else {"$in": [ObjectId(x) for x in id]}
+            query['_id'] = ObjectId(id) if type(id) == str else {"$in": [ObjectId(x) for x in id]}
 
-        query_result = INTERNAL_CLIENT.ehqos['tasks'].find(query)
-        resp.body = json.dumps(list(query_result))
-        logging.debug("Stream: %s" % (resp.body))
-#        query_result = INTERNAL_CLIENT.ehqos['performance'].find(query)
- #       query_result = map(lambda x: Query.format_id(x), query_result)
-  #      resp.stream = map(lambda x: json.dumps(x).encode('utf-8'), query_result)
-   #     logging.debug("Stream: %s" % (resp.stream))
+        tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query, {"_id": 1, "status": 1, "start_time": 1, "end_time": 1})
+        tasks_list = list(map(lambda x: Query.format_id(x), tasks_query))
+        result = {}
+        for task in tasks_list:
+            start_time = task["start_time"]
+            end_time = task["end_time"]
+            performance_query = INTERNAL_CLIENT.ehqos['performance'].find(
+                {"usage.time": {"$gt": start_time, "$lt": end_time}}
+            )
+
+            performance_query = map(lambda x: Query.format_id(x), performance_query)
+            result[task["id"]] = list(performance_query)
+
+        resp.body = json.dumps(result)
 
 
 api = falcon.API()
