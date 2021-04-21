@@ -160,7 +160,7 @@ class TaskPerformance:
 
         Filters are obtained by body parameters.
         """
-        query = req.media if req.media else {}
+        query = req.params if req.params else {}
 
         if 'id' in query:
             id = query.pop('id')
@@ -191,8 +191,7 @@ class TaskStatus:
 
         Filters are obtained by body parameters.
         """
-        query = req.media if req.media else {}
-
+        query = req.params if req.params else {}
         if 'id' in query:
             id = query.pop('id')
             query['_id'] = ObjectId(id) if type(id) == str else {"$in": [ObjectId(x) for x in id]}
