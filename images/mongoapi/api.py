@@ -197,7 +197,7 @@ class TaskStatus:
             id = query.pop('id')
             query['_id'] = ObjectId(id) if type(id) == str else {"$in": [ObjectId(x) for x in id]}
 
-        tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query, {"_id": 1, "status": 1, "start_time": 1, "end_time": 1})
+        tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query, {"_id": 1, "status": 1})
         tasks_list = list(map(lambda x: Query.format_id(x), tasks_query))
         resp.body = json.dumps(tasks_list)
 
