@@ -182,12 +182,33 @@ class TaskPerformance:
         resp.body = json.dumps(result)
 
 
+class TaskStatus:
+    """Retrieves all the status for a list of tasks"""
+
+    def on_get(self, req, resp):
+        """
+        Return results from given collection with given filters.
+
+        Filters are obtained by body parameters.
+        """
+        query = req.media if req.media else {}
+
+        if 'id' in query:
+            id = query.pop('id')
+            query['_id'] = ObjectId(id) if type(id) == str else {"$in": [ObjectId(x) for x in id]}
+
+        tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query, {"_id": 1, "status": 1, "start_time": 1, "end_time": 1})
+        tasks_list = list(map(lambda x: Query.format_id(x), tasks_query))
+        resp.body = json.dumps(tasks_list)
+
+
 api = falcon.API()
 testResource = Test()
 queryResource = Query()
 routineResource = Routine()
 performanceResource = Performance()
 taskperformanceResource = TaskPerformance()
+taskstatusResource = TaskStatus()
 deleteResource = Delete()
 api.add_route('/test', testResource)
 api.add_route('/query/{collection}', queryResource)
@@ -196,4 +217,5 @@ api.add_route('/routine/new', routineResource, suffix="create")
 api.add_route('/routine/{routine_id}', routineResource, suffix="update")
 api.add_route('/performance', performanceResource)
 api.add_route('/taskperformance', taskperformanceResource)
+api.add_route('/taskstatus', taskstatusResource)
 api.add_route('/', deleteResource)

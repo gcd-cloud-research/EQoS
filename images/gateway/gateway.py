@@ -24,6 +24,7 @@ ALLOWED_ROUTES = [
     r'^mongo/query/tasks',
     r'^mongo/query/performance',
     r'^mongo/taskperformance',
+    r'^mongo/taskstatus',
     r'^routine$'
 ]
 
