@@ -149,6 +149,7 @@ def get_best_host(service_name):
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def on_request(path):
     app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
+
     if not path:  # If /, return 200 (for testing)
         return ''
 
@@ -162,6 +163,7 @@ def on_request(path):
     else:
         service, route = path.split('/', maxsplit=1)
 
+    params = request.query_string.decode()
     # Get the service related to this path
     mapped_service = ROUTE_MAP[service] if service in ROUTE_MAP else ''
     if not mapped_service:
@@ -178,6 +180,8 @@ def on_request(path):
     app.logger.info("Got best host: %s" % host)
     url = 'http://%s/%s' % (host, route)
 
+    if params:
+        url = url + "?" + params
     # Add files if necessary
     app.logger.info("Processing files")
     files = {}
