@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: memorywaster
+  name: memorywaster
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: memorywaster
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: memorywaster
+    spec:
+      containers:
+      - image: 192.168.101.63:5000/memorywaster
+        name: memorywaster
+        resources: {}
+        volumeMounts:
+          - mountPath: /hostname
+            name: memorywaster-claim0
+      volumes:
+      - name: memorywaster-claim0
+        hostPath:
+          path: /etc/hostname
+      restartPolicy: Always
