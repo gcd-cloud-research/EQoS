@@ -51,6 +51,7 @@ class Query:
 
         Filters are obtained by body parameters.
         """
+        logging.debug("Query GET")
         start = time.time()
         query = req.media if req.media else {}
 
@@ -96,6 +97,7 @@ class Query:
 
     def on_get_all(self, req, resp):
         start = time.time()
+        logging.debug("Query GET all")
         """Return all available collections."""
         resp.body = json.dumps(INTERNAL_CLIENT.ehqos.list_collection_names())
         end = time.time()
@@ -103,6 +105,7 @@ class Query:
 
     def on_post_all(self, req, resp):
         start = time.time()
+        logging.debug("Query POST all")
         """Bulk upload into an existing or new collection."""
         if not req.media:
             resp.status = falcon.HTTP_400
@@ -123,6 +126,7 @@ class Query:
 class Routine:
     def on_post_create(self, req, resp):
         start = time.time()
+        logging.debug("Routine POST create start")
 
         data = req.media
         if data is None:
@@ -142,6 +146,7 @@ class Routine:
 
     def on_post_update(self, req, resp, routine_id):
         start = time.time()
+        logging.debug("Routine POST update start")
 
         data = req.media
         if data is None:
@@ -158,6 +163,7 @@ class Routine:
 
 class Performance:
     def on_post(self, req, resp):
+        logging.debug("Performance POST start")
         start = time.time()
 
         data = req.media
@@ -172,6 +178,7 @@ class Performance:
 
 class Delete:
     def on_delete(self, req, resp):
+        logging.debug("DELETE start")
         start = time.time()
 
         for collection in INTERNAL_CLIENT.ehqos.list_collection_names():
@@ -191,6 +198,7 @@ class TaskPerformance:
         Filters are obtained by body parameters.
         """
         start = time.time()
+        logging.debug("Task Performance GET start")
         query = req.params if req.params else {}
 
         if 'id' in query:
@@ -219,6 +227,7 @@ class TaskStatus:
     """Retrieves all the status for a list of tasks"""
 
     def on_get(self, req, resp):
+        logging.debug("Task Status GET start")
         start = time.time()
         """
         Return results from given collection with given filters.
