@@ -51,8 +51,6 @@ class Query:
 
         Filters are obtained by body parameters.
         """
-        logging.debug("Query GET")
-        start = time.time()
         query = req.media if req.media else {}
 
         if 'ids' in query:
@@ -87,25 +85,16 @@ class Query:
         else:
             resp.body = json.dumps(list(query_result))
 
-        end = time.time()
-        logging.debug("Query GET: " + str(end-start))
-
     @staticmethod
     def format_id(elem):
         elem['id'] = str(elem.pop('_id'))
         return elem
 
     def on_get_all(self, req, resp):
-        start = time.time()
-        logging.debug("Query GET all")
         """Return all available collections."""
         resp.body = json.dumps(INTERNAL_CLIENT.ehqos.list_collection_names())
-        end = time.time()
-        logging.debug("Query All: " + str(end - start))
 
     def on_post_all(self, req, resp):
-        start = time.time()
-        logging.debug("Query POST all")
         """Bulk upload into an existing or new collection."""
         if not req.media:
             resp.status = falcon.HTTP_400
@@ -119,14 +108,10 @@ class Query:
 
         col, data = req.media['collection'], req.media['data']
         INTERNAL_CLIENT.ehqos[col].insert_many(data)
-        end = time.time()
-        logging.debug("Query POST all: " + str(end - start))
 
 
 class Routine:
     def on_post_create(self, req, resp):
-        start = time.time()
-        logging.debug("Routine POST create start")
 
         data = req.media
         if data is None:
@@ -141,12 +126,7 @@ class Routine:
         })
         resp.body = json.dumps({"id": str(result.inserted_id)})
 
-        end = time.time()
-        logging.debug("Routine POST create: " + str(end - start))
-
     def on_post_update(self, req, resp, routine_id):
-        start = time.time()
-        logging.debug("Routine POST update start")
 
         data = req.media
         if data is None:
@@ -157,14 +137,10 @@ class Routine:
             data['end_time'] = datetime.utcnow().isoformat()
 
         INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": data})
-        end = time.time()
-        logging.debug("Routine POST update: " + str(end - start))
 
 
 class Performance:
     def on_post(self, req, resp):
-        logging.debug("Performance POST start")
-        start = time.time()
 
         data = req.media
         if data is None:
@@ -172,8 +148,6 @@ class Performance:
             return
 
         INTERNAL_CLIENT.ehqos.performance.insert_many(data)
-        end = time.time()
-        logging.debug("Performance POST: " + str(end - start))
 
 
 class Delete:
@@ -197,8 +171,6 @@ class TaskPerformance:
 
         Filters are obtained by body parameters.
         """
-        start = time.time()
-        logging.debug("Task Performance GET start")
         query = req.params if req.params else {}
 
         if 'id' in query:
@@ -219,16 +191,12 @@ class TaskPerformance:
             result[task["id"]] = list(performance_query)
 
         resp.body = json.dumps(result)
-        end = time.time()
-        logging.debug("Task performance GET: " + str(end - start))
 
 
 class TaskStatus:
     """Retrieves all the status for a list of tasks"""
 
     def on_get(self, req, resp):
-        logging.debug("Task Status GET start")
-        start = time.time()
         """
         Return results from given collection with given filters.
 
@@ -242,11 +210,14 @@ class TaskStatus:
         tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query, {"_id": 1, "status": 1})
         tasks_list = list(map(lambda x: Query.format_id(x), tasks_query))
         resp.body = json.dumps(tasks_list)
-        end = time.time()
-        logging.debug("Task status GET: " + str(end - start))
 
 
-api = falcon.API()
+class ResponseLoggerMiddleware(object):
+    def process_response(self, req, resp, resource, req_succeeded):
+        logging.info('{0} {1} {2}'.format(req.method, req.relative_uri, resp.status[:3]))
+
+
+api = falcon.API(middleware=[ResponseLoggerMiddleware()])
 testResource = Test()
 queryResource = Query()
 routineResource = Routine()
