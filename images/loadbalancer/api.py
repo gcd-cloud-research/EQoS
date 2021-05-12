@@ -63,14 +63,14 @@ class Worker:
             resp.body = 'Body should contain pod objects'
             return
 
-        container_names = map(lambda pod: pod['container'], pods)
-        logging.debug("Querying for pods %s" % " ".join(container_names))
+        container_names = list(map(lambda pod: pod['container'], pods))
+        logging.debug("Querying for pods %s" % [container_names])
         # Get worker performance
-        res = requests.get(PERFORMANCE_URL, data=json.dumps({
+        res = requests.get(PERFORMANCE_URL, json={
             'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL)).isoformat()},
-            'container': {'$in': list(container_names)},
+            'container': {'$in': ','.join(container_names)},
             '$sort': [('usage.time', -1)]
-        }))
+        })
 
         logging.debug("Received response %d" % res.status_code)
 
@@ -138,6 +138,8 @@ class SystemLoad:
 
             # Average usages
             from functools import reduce
+            logging.debug("Dicts: %s" % add_dicts)
+            logging.debug("Hosts: %s" % host_usages)
             accums = reduce(add_dicts, host_usages)
             for value in accums.values():
                 if value / len(included_hosts) > JOB_CREATION_THRESHOLD:
