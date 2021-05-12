@@ -52,6 +52,7 @@ class Query:
         Filters are obtained by body parameters.
         """
         query = req.media if req.media else {}
+        logging.debug(query)
 
         if 'ids' in query:
             ids = query.pop('ids')
@@ -71,6 +72,12 @@ class Query:
         limit = 0
         if '$limit' in query:
             limit = query.pop('$limit')
+
+        if 'container' in query:
+            if '$in' in query['container']:
+                query['container']['$in'] = query['container']['$in'].split(',')
+
+        logging.debug(query)
 
         if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
             query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=limit)
@@ -172,6 +179,7 @@ class TaskPerformance:
         Filters are obtained by body parameters.
         """
         query = req.params if req.params else {}
+        logging.debug(query)
 
         if 'id' in query:
             id = query.pop('id')
@@ -217,7 +225,8 @@ class ResponseLoggerMiddleware(object):
         logging.info('{0} {1} {2}'.format(req.method, req.relative_uri, resp.status[:3]))
 
 
-api = falcon.API(middleware=[ResponseLoggerMiddleware()])
+# api = falcon.API(middleware=[ResponseLoggerMiddleware()])
+api = falcon.API()
 testResource = Test()
 queryResource = Query()
 routineResource = Routine()
