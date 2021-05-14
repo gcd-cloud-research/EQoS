@@ -9,6 +9,9 @@ import requests
 import docker
 import pika
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 with open('/var/run/secrets/kubernetes.io/serviceaccount/token') as fh:
     token = fh.read()
 
@@ -73,8 +76,12 @@ def build_and_push(rid, extension):
     docker_api.images.build(path=routine_dir, tag=image_tag)
     docker_api.images.push(image_tag)
 
-    # Update status
-    requests.post(ROUTINE_URL, {'status': 'BUILT'})
+    res = None
+    while not res:
+        try:
+            res = requests.post(ROUTINE_URL, {'status': 'BUILT'})
+        except requests.exceptions.ConnectionError:
+            logging.info("Status update failed")
 
     # Cleanup
     docker_api.images.remove(image=image_tag)
@@ -84,6 +91,7 @@ def build_and_push(rid, extension):
 
 
 def create_routine(routine_id, extension):
+    logging.info("Routine ID: " % routine_id)
     # Build Docker image for routine and upload to registry
     build_and_push(routine_id, extension)
 
