@@ -13,3 +13,4 @@ fi
 
 buildimages.sh "$REGISTRY" "$image"
 redep.sh "$deployment"
+kubectl get pods -o wide
