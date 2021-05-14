@@ -79,9 +79,11 @@ def build_and_push(rid, extension):
     res = None
     while not res:
         try:
-            res = requests.post(ROUTINE_URL, {'status': 'BUILT'})
+            app.logger.debug("Changing task status")
+            res = requests.post(ROUTINE_URL, json.dumps({'status': 'BUILT'}))
+            app.logger.debug("Request done: %s" % res)
         except requests.exceptions.ConnectionError:
-            logging.info("Status update failed")
+            app.logger.error("Status update failed")
 
     # Cleanup
     docker_api.images.remove(image=image_tag)
@@ -108,6 +110,7 @@ def create_routine(routine_id, extension):
 
 def initialise_in_db(routine_name):
     # Initialise routine in database
+    app.logger.debug("Initializing %s" % routine_name)
     res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
         'name': routine_name,
         'issuer': '?'
@@ -123,6 +126,7 @@ def routine_watcher(reader):
     while True:
         name = readfh.readline().strip()
         if name != '':
+            app.logger.info("New routine received %s" % name)
             rid, extension = name.split('.')
             create_routine(rid, extension)
         else:
@@ -152,6 +156,7 @@ def new_routine():
 
     f.save('/received/%s/%s' % (rid, filename))
     os.write(wpipe, ('%s\n' % filename).encode('utf-8'))
+    app.logger.info("new routine ok")
     return {'id': rid}
 
 
