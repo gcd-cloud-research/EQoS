@@ -80,7 +80,7 @@ def build_and_push(rid, extension):
     while not res:
         try:
             app.logger.debug("Changing task status")
-            res = requests.post(ROUTINE_URL, json.dumps({'status': 'BUILT'}))
+            res = requests.post(ROUTINE_URL + rid, json.dumps({'status': 'BUILT'}))
             app.logger.debug("Request done: %s" % res)
         except requests.exceptions.ConnectionError:
             app.logger.error("Status update failed")
