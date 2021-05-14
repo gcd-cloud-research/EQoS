@@ -91,7 +91,7 @@ def build_and_push(rid, extension):
 
 
 def create_routine(routine_id, extension):
-    logging.info("Routine ID: " % routine_id)
+    logging.info("Routine ID: %s" % routine_id)
     # Build Docker image for routine and upload to registry
     build_and_push(routine_id, extension)
 
