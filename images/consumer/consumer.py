@@ -73,9 +73,6 @@ def callback(channel, method, properties, body):
     body = body.decode('utf-8')
     routine_id, extension = "|".join(body.split("|")[:-1]), body.split("|")[-1]
     logging.info("Received id %s, extension %s" % (routine_id, extension))
-    f = open("acklog.txt", "a+")
-    f.write("ACK: %s \n" % routine_id)
-    f.close()
 
     if can_create_job():
         logging.info("LoadBalancer allows creation. Starting")
@@ -86,6 +83,9 @@ def callback(channel, method, properties, body):
             logging.debug(res)
             # I think it's ACKing the job, failing on the job status change and then ACKing again and exploding out of the planet
             channel.basic_ack(delivery_tag=method.delivery_tag)
+            f = open("acklog.txt", "a+")
+            f.write("ACK: %s \n" % routine_id)
+            f.close()
             change_job_status(routine_id, 'QUEUED')
         except ApiException as exception:
             logging.error("Could not create job: %s" % exception)
@@ -94,6 +94,9 @@ def callback(channel, method, properties, body):
             logging.info("LoadBalancer did not approve. Not creating job")
             change_job_status(routine_id, 'HOLD')
             channel.basic_nack(method.delivery_tag)
+            f = open("acklog.txt", "a+")
+            f.write("NACK: %s \n" % routine_id)
+            f.close()
             time.sleep(10)
         except Exception as e:
             logging.error(e)
@@ -101,11 +104,11 @@ def callback(channel, method, properties, body):
 
 if __name__ == '__main__':
     while True:
-        if os.fork() == 0:
-            chan.basic_consume(
-                queue='jobs',
-                on_message_callback=callback
-            )
-            chan.start_consuming()
-        else:
-            os.wait()
+#        if os.fork() == 0:
+        chan.basic_consume(
+            queue='jobs',
+            on_message_callback=callback
+        )
+        chan.start_consuming()
+ #       else:
+  #          os.wait()
