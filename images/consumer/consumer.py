@@ -72,7 +72,8 @@ def create_job(routine_id, extension):
 def callback(channel, method, properties, body):
     body = body.decode('utf-8')
     routine_id, extension = "|".join(body.split("|")[:-1]), body.split("|")[-1]
-    logging.info("Received id %s, extension %s" % (routine_id, extension))
+    logging.info("Received id %s, extension %s tags %s" % (routine_id, extension, method.delivery_tag))
+    logging.info(channel)
 
     if can_create_job():
         logging.info("LoadBalancer allows creation. Starting")
@@ -105,6 +106,9 @@ def callback(channel, method, properties, body):
 if __name__ == '__main__':
     while True:
 #        if os.fork() == 0:
+        conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
+        chan = conn.channel()
+        chan.queue_declare(queue='jobs', durable=True)
         chan.basic_consume(
             queue='jobs',
             on_message_callback=callback
