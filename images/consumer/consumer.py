@@ -74,7 +74,7 @@ def callback(channel, method, properties, body):
     routine_id, extension = "|".join(body.split("|")[:-1]), body.split("|")[-1]
     logging.info("Received id %s, extension %s" % (routine_id, extension))
     f = open("acklog.txt", "a+")
-    f.write("ACK: %s" % routine_id)
+    f.write("ACK: %s \n" % routine_id)
     f.close()
 
     if can_create_job():
@@ -90,10 +90,13 @@ def callback(channel, method, properties, body):
         except ApiException as exception:
             logging.error("Could not create job: %s" % exception)
     else:
-        logging.info("LoadBalancer did not approve. Not creating job")
-        change_job_status(routine_id, 'HOLD')
-        channel.basic_nack(method.delivery_tag)
-        time.sleep(10)
+        try:
+            logging.info("LoadBalancer did not approve. Not creating job")
+            change_job_status(routine_id, 'HOLD')
+            channel.basic_nack(method.delivery_tag)
+            time.sleep(10)
+        except Exception as e:
+            logging.error(e)
 
 
 if __name__ == '__main__':
