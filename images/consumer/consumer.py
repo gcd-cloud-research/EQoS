@@ -23,7 +23,15 @@ STATUS_URL = 'http://mongoapi:8000/routine/'
 
 
 def change_job_status(rid, st):
-    res = requests.post(STATUS_URL + rid, json.dumps({'status': st}))
+    res = None
+    while not res:
+        try:
+            logging.debug("Changing task status")
+            res = requests.post(STATUS_URL + rid, json.dumps({'status': st}))
+            logging.debug("Request done: %s" % res)
+        except requests.exceptions.ConnectionError:
+            logging.error("Status update failed")
+
     if res.status_code != 200:
         logging.warning("Could not change job status: %s" % res.text)
     else:
@@ -65,6 +73,10 @@ def callback(channel, method, properties, body):
     body = body.decode('utf-8')
     routine_id, extension = "|".join(body.split("|")[:-1]), body.split("|")[-1]
     logging.info("Received id %s, extension %s" % (routine_id, extension))
+    f = open("acklog.txt", "a+")
+    f.write("ACK: %s" % routine_id)
+    f.close()
+
     if can_create_job():
         logging.info("LoadBalancer allows creation. Starting")
         job = create_job(routine_id, extension)
@@ -72,6 +84,7 @@ def callback(channel, method, properties, body):
             res = kube_api.create_namespaced_job('default', job)
             logging.info("Created")
             logging.debug(res)
+            # I think it's ACKing the job, failing on the job status change and then ACKing again and exploding out of the planet
             channel.basic_ack(delivery_tag=method.delivery_tag)
             change_job_status(routine_id, 'QUEUED')
         except ApiException as exception:
