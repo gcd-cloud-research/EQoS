@@ -105,20 +105,14 @@ def callback(channel, method, properties, body):
 
 if __name__ == '__main__':
     while True:
-#        if os.fork() == 0:
-        logging.info("Start")
-        conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
-        logging.info("Pika connection created")
-        chan = conn.channel()
-        logging.info("Channel created")
-        chan.queue_declare(queue='jobs', durable=True)
-        logging.info("Queue Declared")
-        chan.basic_consume(
-            queue='jobs',
-            on_message_callback=callback
-        )
-        logging.info("Basic consume")
-        chan.start_consuming()
-        logging.info("Started consuming")
- #       else:
-  #          os.wait()
+        if os.fork() == 0:
+            conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
+            chan = conn.channel()
+            chan.queue_declare(queue='jobs', durable=True)
+            chan.basic_consume(
+                queue='jobs',
+                on_message_callback=callback
+            )
+            chan.start_consuming()
+        else:
+            os.wait()
