@@ -39,4 +39,11 @@ spec:
       - name: internaldb-claim0
         hostPath:
           path: /mnt/private/mongodb-internal
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
 status: {}

@@ -30,4 +30,11 @@ spec:
         - containerPort: 8000
         resources: {}
       restartPolicy: Always
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
 status: {}
