@@ -29,11 +29,19 @@ if __name__ == '__main__':
     pids = []
 
     while True:
-        last_perf = list(client.ehqos.performance
-                         .find({'host': host})
-                         .sort([('usage.time', pymongo.DESCENDING)])
-                         .limit(1)
-                         )[0]
+
+        last_perf = None
+        while not last_perf:
+            try:
+                last_perf = list(client.ehqos.performance
+                                 .find({'host': host})
+                                 .sort([('usage.time', pymongo.DESCENDING)])
+                                 .limit(1)
+                                 )
+                last_perf = last_perf[0] if len(last_perf) > 0 else None
+            except Exception:
+                logging.error("Status update failed")
+
         memory = last_perf['usage']['memory']
         if memory >= 100:
             logging.info(memory)
