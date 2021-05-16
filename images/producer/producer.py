@@ -111,10 +111,17 @@ def create_routine(routine_id, extension):
 def initialise_in_db(routine_name):
     # Initialise routine in database
     app.logger.debug("Initializing %s" % routine_name)
-    res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
-        'name': routine_name,
-        'issuer': '?'
-    }))
+
+    res = None
+    while not res:
+        try:
+            res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
+                'name': routine_name,
+                'issuer': '?'
+            }))
+        except requests.exceptions.ConnectionError:
+            app.logger.info("Retrying request")
+
     if res.status_code != 200:
         app.logger.error("Error submitting routine to database: " + res.text)
         abort(500)
