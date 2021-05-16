@@ -6,7 +6,7 @@ import logging
 import pymongo
 
 logging.basicConfig(level=logging.INFO)
-TARGET_LOAD = 90
+TARGET_LOAD = 80
 TOLERANCE = 5
 
 
