@@ -37,4 +37,11 @@ spec:
       - name: producer-claim0
         hostPath:
           path: /var/run/docker.sock
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
 status: {}

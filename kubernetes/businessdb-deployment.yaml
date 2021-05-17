@@ -38,4 +38,11 @@ spec:
       - name: businessdb-claim0
         hostPath:
           path: /mnt/private/mongodb-business
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
 status: {}

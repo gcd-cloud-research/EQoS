@@ -22,4 +22,11 @@ spec:
         name: consumer
         resources: {}
       restartPolicy: Always
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
 status: {}
