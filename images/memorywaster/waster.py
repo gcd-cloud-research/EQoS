@@ -15,7 +15,7 @@ def waster():
     while True:
         global shouldFill
         if shouldFill:
-            byeMemory.append([0]*1000)
+            byeMemory.append([0]*100000)
 
 
 if __name__ == '__main__':
