@@ -12,7 +12,7 @@ config.load_incluster_config()
 KUBE_API = client.CoreV1Api()
 
 LOAD_CHECKING_INTERVAL = 3 * 60  # Amount of seconds to go back when averaging load for choosing least busy container
-SYSTEM_LOAD_BACKTRACKING_TIME = 5  # Small amount, but enough to make sure we get data of all hosts
+SYSTEM_LOAD_BACKTRACKING_TIME = 10  # Small amount, but enough to make sure we get data of all hosts
 JOB_CREATION_THRESHOLD = 80
 PERFORMANCE_URL = 'http://mongoapi:8000/query/performance'
 
