@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from calendar import timegm
 import requests
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 URL = 'http://localhost:8080/api/v1.3/'
@@ -130,7 +132,9 @@ if __name__ == "__main__":
     host_performance = get_machine_usage(get_hostname())
     if host_performance:
         requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
+        logging.debug("Host performance: %s" % host_performance)
 
     container_performance = get_container_usage()
     if container_performance:
         requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
+        logging.debug("Container performance: %s" % container_performance)
