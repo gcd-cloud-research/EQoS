@@ -136,6 +136,10 @@ class SystemLoad:
                     host_usages.append(entry['usage'])
                     included_hosts.append(entry['host'])
 
+            if len(host_usages) == 0:
+                resp.body = json.dumps({'status': False})
+                return
+
             # Average usages
             from functools import reduce
             logging.debug("Dicts: %s" % add_dicts)
