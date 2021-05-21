@@ -31,27 +31,6 @@ spec:
         volumeMounts:
           - mountPath: /var/lib/grafana
             name: grafana-claim0
-      - image: influxdb:1.8.3
-          name: influxdb
-          ports:
-            - containerPort: 8086
-          resources: {}
-          volumeMounts:
-            - mountPath: /var/lib/influxdb
-              name: influx-claim0
-          env:
-            - name: INFLUXDB_DB
-              value: "grafana"
-            - name: INFLUXDB_USER
-                value: "grafana"
-            - name: INFLUXDB_USER_PASSWORD
-                value: "password"
-            - name: INFLUXDB_ADMIN_ENABLED
-                value: "true"
-            - name: INFLUXDB_ADMIN_USER
-                value: "admin"
-            - name: INFLUXDB_ADMIN_PASSWORD
-                value: "password"
       restartPolicy: Always
       volumes:
         - name: influx-claim0
