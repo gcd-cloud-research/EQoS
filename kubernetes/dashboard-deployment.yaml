@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: dashboard
+  name: dashboard
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: dashboard
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+        kompose.version: 1.19.0 (f63a961c)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: dashboard
+    spec:
+      containers:
+      - image: grafana/grafana
+        name: grafana
+        ports:
+        - containerPort: 3000
+        resources: {}
+        volumeMounts:
+          - mountPath: /var/lib/grafana
+            name: grafana-claim0
+      - image: influxdb:1.8.3
+          name: influxdb
+          ports:
+            - containerPort: 8086
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/lib/influxdb
+              name: influx-claim0
+          env:
+            - name: INFLUXDB_DB
+              value: "grafana"
+            - name: INFLUXDB_USER
+                value: "grafana"
+            - name: INFLUXDB_USER_PASSWORD
+                value: "password"
+            - name: INFLUXDB_ADMIN_ENABLED
+                value: "true"
+            - name: INFLUXDB_ADMIN_USER
+                value: "admin"
+            - name: INFLUXDB_ADMIN_PASSWORD
+                value: "password"
+      restartPolicy: Always
+      volumes:
+        - name: influx-claim0
+          hostPath:
+            path: /mnt/private/influx/influx
+        - name: grafana-claim0
+            hostPath:
+              path: /mnt/private/grafana/grafana
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
+status: {}
