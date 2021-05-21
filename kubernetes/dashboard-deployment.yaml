@@ -33,12 +33,9 @@ spec:
             name: grafana-claim0
       restartPolicy: Always
       volumes:
-        - name: influx-claim0
-          hostPath:
-            path: /mnt/private/influx/influx
         - name: grafana-claim0
-            hostPath:
-              path: /mnt/private/grafana/grafana
+          hostPath:
+            path: /mnt/private/grafana/grafana
       nodeSelector:
         type: internalService
       tolerations:
