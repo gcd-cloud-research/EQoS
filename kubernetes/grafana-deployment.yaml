@@ -49,15 +49,14 @@ spec:
             requests:
               cpu: 250m
               memory: 750Mi
-
       volumes:
         - name: grafana-claim0
           hostPath:
             path: /mnt/private/grafana
       nodeSelector:
         type: internalService
-        tolerations:
-          - key: "type"
-            operator: "Equal"
-            value: "internalService"
-            effect: "NoSchedule"
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
