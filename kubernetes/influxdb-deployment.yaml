@@ -29,8 +29,8 @@ spec:
                 name: influxdb-secrets
       volumes:
         - name: influxdb-data
-          persistentVolumeClaim:
-            claimName: influxdb-data
+          hostPath:
+            path: /mnt/private/influxdb
         - name: influxdb-config
           configMap:
             name: influxdb-config
