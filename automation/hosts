@@ -1,0 +1,8 @@
+[kubernetesmaster]
+master ansible_host=192.168.101.105 ansible_user=root
+
+[kubernetesnodes]
+node1 ansible_host=192.168.101.105 ansible_user=root
+
+[dockerregistry]
+registry ansible_host=192.168.101.106 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
