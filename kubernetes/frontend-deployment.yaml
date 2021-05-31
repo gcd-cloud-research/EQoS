@@ -24,7 +24,7 @@ spec:
         io.kompose.service: frontend
     spec:
       containers:
-      - image: 192.168.101.63:5000/frontend
+      - image: registry:5000/frontend
         name: frontend
         ports:
         - containerPort: 3000

@@ -24,7 +24,7 @@ spec:
         io.kompose.service: producer
     spec:
       containers:
-      - image: 192.168.101.63:5000/producer
+      - image: registry:5000/producer
         name: producer
         ports:
         - containerPort: 5000
