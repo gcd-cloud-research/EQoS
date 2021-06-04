@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: gateway
+  name: gateway
+spec:
+  type: NodePort
+  ports:
+  - name: "serviceport"
+    port: 5000
+    targetPort: 5000
+  selector:
+    io.kompose.service: gateway
+status:
+  loadBalancer: {}

@@ -5,4 +5,4 @@ export KUBE_FILE_DIR="$ROOT_DIR"/kubernetes
 export IMAGE_DIR="$ROOT_DIR"/images
 export UTILS_DIR="$ROOT_DIR"/utils
 export PATH="$PATH:$UTILS_DIR"
-alias prunepods='kubectl delete pod --field-selector=status.phase==Succeeded'
+alias prunepods='kubectl delete pod --field-selector=status.phase==Succeeded && kubectl delete pod --field-selector=status.phase==Failed'
