@@ -4,4 +4,5 @@ COPY requirements.txt /
 RUN pip install -r requirements.txt
 
 COPY gateway.py /
+ADD kube /kube
 CMD ["python", "gateway.py"]
