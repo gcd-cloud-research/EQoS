@@ -1,0 +1,77 @@
+- hosts: dockerregistry
+  name: Gather facts from collectors
+  tasks: [ ]
+
+- hosts: kubernetesmaster
+  become: true
+  tasks:
+    - name: Creates private directory
+      file:
+        path: /mnt/private
+        state: directory
+        owner: root
+        group: root
+        mode: 0775
+        recurse: yes
+
+    - name: Creates public directory
+      file:
+        path: /mnt/public/EQoS
+        state: directory
+        owner: root
+        group: root
+        mode: 0775
+        recurse: yes
+
+    - name: Install utils packages
+      yum:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        packages:
+          - git
+
+    - include_vars: git-credentials.yml
+
+    - name: Clone git repo
+      git:
+        repo: "https://{{secret_git_username|urlencode()}}:{{secret_git_password|urlencode()}}@github.com/LluisMas/EQoS.git"
+        dest: "/mnt/public/EQoS"
+        update: yes
+
+    - name: Git config
+      git_config:
+        name: core.filemode
+        value: false
+        scope: local
+        repo: /mnt/public/EQoS
+
+    - name: Change ENV variables in Dockerfile
+      lineinfile:
+        path: /mnt/public/EQoS/images/{{item}}/Dockerfile
+        regexp: '^ENV'
+        line: "ENV REGISTRY \"{{ hostvars['registry']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}:5000\""
+      with_items:
+        - consumer
+        - producer
+
+    - name: Creates config file for the MongoAPI
+      copy:
+        dest: /mnt/public/EQoS/images/mongoapi/config.json
+        content: |
+          {
+          	"internal": {
+          		"mongo_user": "admin",
+          		"mongo_pass": "toor"
+          	},
+          	"business": {
+          		"mongo_user": "admin",
+          		"mongo_pass": "toor"
+          	}
+          }
+
+    - name: Add kubectl config to pod
+      shell: kubectl config view --flatten | install -D /dev/stdin /mnt/public/EQoS/images/gateway/kube/config
+      tags:
+        - current
