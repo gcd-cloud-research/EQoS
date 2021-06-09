@@ -135,9 +135,8 @@ def get_hostname():
 
 def insert_elastic(data):
     try:
-        res = es.index(index="performance", doc_type="string",
-                       body=data)
-        print(res['result'])
+        response = helpers.bulk(es, data, index='performance')
+        print(response)
     except Exception as error:
         logging.debug(error)
         pass
