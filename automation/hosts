@@ -8,9 +8,13 @@ worker2 ansible_host=192.168.101.110 ansible_user=root ansible_python_interprete
 worker3 ansible_host=192.168.101.111 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
 worker4 ansible_host=192.168.101.112 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
 worker5 ansible_host=192.168.101.113 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
+worker6 ansible_host=192.168.101.114 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
 
 [dockerregistry]
 registry ansible_host=192.168.101.106 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
 
 [kubernetesservice]
 servicenode ansible_host=192.168.101.107 ansible_user=root ansible_python_interpreter="/usr/bin/python3"
+
+[kubernetesmonitor]
+monitornode ansible_host=192.168.101.114 ansible_user=root ansible_python_interpreter="/usr/bin/python3"

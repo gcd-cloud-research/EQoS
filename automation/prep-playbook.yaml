@@ -1,8 +1,21 @@
 - hosts: all
   become: true
   tasks:
+    - name: Install dependencies
+      yum:
+        name: "{{ item }}"
+        state: present
+        update_cache: True
+      with_items:
+        - lvm2
+        - docker
+        - containerd.io
+        - epel-release
+        - python3
+        - python3-requests
+
     - name: Update the /etc/hosts file with node name
-      tags: etchostsupdate
+#      tags: current
       become: yes
       become_user: root
       lineinfile:
@@ -23,3 +36,4 @@
         state: present
       when: hostvars[item].ansible_host is defined and "localhost" not in item
       with_items: "{{ groups.all }}"
+      tags: current

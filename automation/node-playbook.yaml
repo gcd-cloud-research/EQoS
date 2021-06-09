@@ -1,4 +1,4 @@
-- hosts: kubernetesservice:dockerregistry
+- hosts: kubernetesservice:dockerregistry:kubernetesmonitor
   name: Gather facts from collectors
   tasks: [ ]
 
@@ -12,22 +12,9 @@
       local_action: copy content={{ output.stdout }} dest=out.sh
       become: False
 
-- hosts: kubernetesnodes
+- hosts: kubernetesnodes[-1]
   become: true
   tasks:
-    - name: Install Docker
-      yum:
-        name: "{{ item }}"
-        state: present
-        update_cache: True
-      with_items:
-        - lvm2
-        - docker
-        - containerd.io
-        - epel-release
-        - python3
-        - python3-requests
-
     - name: Reset the Kubernetes cluster using kubeadm
       command: kubeadm reset -f
 
@@ -61,6 +48,26 @@
     - name: Labels the service node
       command: kubectl label nodes {{hostvars[item]['ansible_hostname']}}.localdomain type=internalService
       with_items: "{{groups['kubernetesservice']}}"
+      register: result
+      failed_when:
+        - result.rc == 1
+        - '"already has a value" not in result.stderr'
+      tags:
+        - current
+
+    - name: Taints the monitor node
+      command: kubectl taint node {{hostvars[item]['ansible_hostname']}}.localdomain type=monitorService:NoSchedule --overwrite
+      with_items: "{{groups['kubernetesmonitor']}}"
+
+    - name: Labels the monitor node
+      command: kubectl label nodes {{hostvars[item]['ansible_hostname']}}.localdomain type=monitorService
+      with_items: "{{groups['kubernetesmonitor']}}"
+      register: result
+      failed_when:
+        - result.rc == 1
+        - '"already has a value" not in result.stderr'
+      tags:
+        - current
 
 - hosts: kubernetesnodes:kubernetesmaster
   become: true
@@ -72,8 +79,6 @@
         insertbefore: "\"storage-driver\": \"overlay2\","
         firstmatch: yes
         line: "\"insecure-registries\": [\"{{hostvars['registry']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}:5000\", \"registry:5000\"],"
-        tags:
-          - current
 
     - name: Restart Docker service
       service:
