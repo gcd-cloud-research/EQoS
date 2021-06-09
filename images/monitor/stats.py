@@ -4,8 +4,13 @@ from datetime import datetime
 from calendar import timegm
 import requests
 import logging
+from elasticsearch import Elasticsearch, helpers
+
 logging.basicConfig(level=logging.DEBUG)
 
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
 
 URL = 'http://localhost:8080/api/v1.3/'
 LAST_REPORT_FILE = 'reports.json'
@@ -128,13 +133,25 @@ def get_hostname():
     return hostname
 
 
+def insert_elastic(data):
+    try:
+        res = es.index(index="performance", doc_type="string",
+                       body=data)
+        print(res['result'])
+    except Exception as error:
+        logging.debug(error)
+        pass
+
+
 if __name__ == "__main__":
     host_performance = get_machine_usage(get_hostname())
     if host_performance:
         requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
         logging.debug("Host performance: %s" % host_performance)
+        insert_elastic(host_performance)
 
     container_performance = get_container_usage()
     if container_performance:
         requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
         logging.debug("Container performance: %s" % container_performance)
+        insert_elastic(host_performance)
