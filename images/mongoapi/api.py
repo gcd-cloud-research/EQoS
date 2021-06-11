@@ -29,7 +29,8 @@ with open("config.json") as fh:
         sys.exit(1)
 
 INTERNAL_CLIENT = pymongo.MongoClient(
-    "mongodb://127.0.0.1:27017"
+    "mongodb://%s:%s@internaldb:27017" %
+    (conf['internal']['mongo_user'], conf['internal']['mongo_pass'])
 )
 
 es = Elasticsearch([
