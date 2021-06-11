@@ -190,15 +190,32 @@ def on_request(path):
                 'container': {'$exists': True},
                 '$sort': [('usage.time', 1)]
             }),
-            timeout=10 / 2,
+            timeout=5 / 2,
             stream=True
         )
-
-        app.logger.info("Time: ", time)
-        elasticResponse = es.search(index="performance", filter_path=['hits.hits._source'], body={"query": {"range": {
-            "usage.time": {
-                "gte": (time - stepback_time).isoformat()
-            }}}})
+        elasticQuery = {"query": {
+            "bool": {
+                "must": [
+                    {
+                        "range": {
+                            "usage.time": {
+                                "gte": (time - stepback_time).isoformat()
+                            }
+                        }
+                    },
+                    {
+                        "exists": {
+                            "field": "container"
+                        }
+                    }
+                ]}
+        },
+            '$sort': [('usage.time', 1)],
+            '$test': True
+        }
+        res = requests.get('http://mongoapi:8000/query/performance', data=json.dumps(elasticQuery),
+                           timeout=5 / 2,
+                           stream=True)
 
         f = open("mongo.txt", "w+")
         f.write('\n'.join([json.dumps(measurement) for measurement in JsonStreamIterator(res)]))

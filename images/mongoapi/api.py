@@ -11,9 +11,9 @@ from elasticsearch import Elasticsearch
 logging.basicConfig(level=logging.DEBUG)
 
 JSON_CONF_STRUCTURE = {  # '{}' represents a value
-        'internal': {'mongo_user': {}, 'mongo_pass': {}},
-        'business': {'mongo_user': {}, 'mongo_pass': {}}
-    }
+    'internal': {'mongo_user': {}, 'mongo_pass': {}},
+    'business': {'mongo_user': {}, 'mongo_pass': {}}
+}
 
 
 def valid_conf(reference, conf_obj):
@@ -28,7 +28,6 @@ with open("config.json") as fh:
     if not valid_conf(JSON_CONF_STRUCTURE, conf):
         sys.exit(1)
 
-
 INTERNAL_CLIENT = pymongo.MongoClient(
     "mongodb://127.0.0.1:27017"
 )
@@ -36,6 +35,7 @@ INTERNAL_CLIENT = pymongo.MongoClient(
 es = Elasticsearch([
     '192.168.101.103:9200'
 ])
+
 
 class Test:
     """Endpoint for checking that service is up."""
@@ -80,10 +80,19 @@ class Query:
             if '$in' in query['container']:
                 query['container']['$in'] = query['container']['$in'].split(',')
 
+        test = False
+        if '$test' in query:
+            test = query.pop('$test')
+
         logging.debug(query)
 
-        if collection in INTERNAL_CLIENT.ehqos.list_collection_names():
+        if not test:#collection == "tasks":
             query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=limit)
+        elif test:# collection == "performance":
+            query_result = es.search(index="performance", filter_path=['hits.hits._source'],
+                                     body=req.media if req.media else {}, size=1000 if limit != 0 else limit,
+                                     sort="%s:%s".format(sort[0][0], "desc" if sort[0][0] == -1 else "asc"))
+            #  '$sort': [('usage.time', -1)]
         else:
             resp.status = falcon.HTTP_404
             return
@@ -151,7 +160,6 @@ class Routine:
 
 class Performance:
     def on_post(self, req, resp):
-
         data = req.media
         if data is None:
             resp.status = falcon.HTTP_400
@@ -188,7 +196,8 @@ class TaskPerformance:
             id = query.pop('id')
             query['_id'] = ObjectId(id) if type(id) == str else {"$in": [ObjectId(x) for x in id]}
 
-        tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query, {"_id": 1, "status": 1, "start_time": 1, "end_time": 1})
+        tasks_query = INTERNAL_CLIENT.ehqos['tasks'].find(query,
+                                                          {"_id": 1, "status": 1, "start_time": 1, "end_time": 1})
         tasks_list = list(map(lambda x: Query.format_id(x), tasks_query))
         result = {}
         for task in tasks_list:
