@@ -199,11 +199,11 @@ def on_request(path):
             }}}})
 
         f = open("mongo.txt", "w+")
-        f.write('\n'.join([measurement for measurement in JsonStreamIterator(res)]))
+        f.write('\n'.join([json.dumps(measurement) for measurement in JsonStreamIterator(res)]))
         f.close()
 
         f = open("elastic.txt", "w+")
-        f.write('\n'.join([x["_source"] for x in elasticResponse["hits"]["hits"]]))
+        f.write('\n'.join([json.dumps(x["_source"]) for x in elasticResponse["hits"]["hits"]]))
         f.close()
 
         # app.logger.info("MongoAPI: ", [measurement for measurement in JsonStreamIterator(res)])
