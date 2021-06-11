@@ -145,12 +145,12 @@ def insert_elastic(data):
 if __name__ == "__main__":
     host_performance = get_machine_usage(get_hostname())
     if host_performance:
-        # requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
+        requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
         logging.info("Host performance: %s" % host_performance)
         insert_elastic(host_performance)
 
     container_performance = get_container_usage()
     if container_performance:
-        # requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
+        requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
         logging.info("Container performance: %s" % container_performance)
-        insert_elastic(host_performance)
+        insert_elastic(container_performance)
