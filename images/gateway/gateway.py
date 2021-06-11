@@ -179,13 +179,14 @@ def get_best_host(service_name):
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def on_request(path):
     app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
+    time = app.logger.info("Time: ", datetime.utcnow())
 
     if not path:  # If /, return 200 (for testing)
         stepback_time = timedelta(seconds=10)
         res = requests.get(
             'http://mongoapi:8000/query/performance',
             data=json.dumps({
-                'usage.time': {'$gte': (datetime.utcnow() - stepback_time).isoformat()},
+                'usage.time': {'$gte': (time - stepback_time).isoformat()},
                 'container': {'$exists': True},
                 '$sort': [('usage.time', 1)]
             }),
@@ -193,9 +194,10 @@ def on_request(path):
             stream=True
         )
 
+        app.logger.info("Time: ", time)
         elasticResponse = es.search(index="performance", filter_path=['hits.hits._source'], body={"query": {"range": {
             "usage.time": {
-                "gte": (datetime.utcnow() - stepback_time).isoformat()
+                "gte": (time - stepback_time).isoformat()
             }}}})
 
         f = open("mongo.txt", "w+")
