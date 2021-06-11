@@ -179,7 +179,7 @@ def get_best_host(service_name):
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def on_request(path):
     app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
-    time = app.logger.info("Time: ", datetime.utcnow())
+    time = datetime.utcnow()
 
     if not path:  # If /, return 200 (for testing)
         stepback_time = timedelta(seconds=10)
