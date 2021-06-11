@@ -6,6 +6,8 @@ from flask import Flask, request, abort, jsonify
 import requests
 from kubernetes import client, config
 from werkzeug.utils import secure_filename
+from datetime import datetime, timedelta
+from elasticsearch import Elasticsearch, helpers
 
 config.load_kube_config(config_file='/kube/config')
 KUBE_API = client.CoreV1Api()
@@ -14,6 +16,10 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "/tmp"
 ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 POSSIBLE_FILES = ['program', 'requirements']
+
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
 
 ROUTE_MAP = {
     'mongo': 'mongoapi',
@@ -27,6 +33,30 @@ ALLOWED_ROUTES = [
     r'^mongo/taskstatus',
     r'^routine$'
 ]
+
+
+class JsonStreamIterator:
+    # Does not accept lists as items, as it only needs to process performance objects
+    def __init__(self, response):
+        self.ite = response.iter_content(decode_unicode=True)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        string = ''
+        open_count = 0
+        for char in self.ite:
+            string += char.decode('utf-8')
+            if string[-1] == '{':
+                open_count += 1
+            if string[-1] == '}':
+                open_count -= 1
+                if not open_count:
+                    break
+        if not string:
+            raise StopIteration()
+        return json.loads(string)
 
 
 class LitePod:
@@ -142,7 +172,7 @@ def get_best_host(service_name):
     if res.status_code != 200:
         return res.status_code, None
     best_pod = LitePod.decode(res.json())
-    return res.status_code, '%s:%s' % (best_pod.host_ip, get_port(best_pod))
+    return res.status_code, 'D%s:%s' % (best_pod.host_ip, get_port(best_pod))
 
 
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
@@ -151,6 +181,25 @@ def on_request(path):
     app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
 
     if not path:  # If /, return 200 (for testing)
+        stepback_time = timedelta(seconds=10)
+        res = requests.get(
+            'http://mongoapi:8000/query/performance',
+            data=json.dumps({
+                'usage.time': {'$gte': (datetime.utcnow() - stepback_time).isoformat()},
+                'container': {'$exists': True},
+                '$sort': [('usage.time', 1)]
+            }),
+            timeout=10 / 2,
+            stream=True
+        )
+
+        elasticResponse = es.search(index="performance", filter_path=['hits.hits._source'], body={"query": {"range": {
+            "usage.time": {
+                "gte": (datetime.utcnow() - stepback_time).isoformat()
+            }}}})
+
+        app.logger.info("MongoAPI: ", [measurement for measurement in JsonStreamIterator(res)])
+        app.logger.info("Elastic: ", [x["_source"] for x in elasticResponse["hits"]["hits"]])
         return ''
 
     if not is_allowed(path):

@@ -6,7 +6,7 @@ import requests
 import logging
 from elasticsearch import Elasticsearch, helpers
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 es = Elasticsearch([
     'monitornode.eqos:9200'
@@ -136,7 +136,7 @@ def get_hostname():
 def insert_elastic(data):
     try:
         response = helpers.bulk(es, data, index='performance')
-        print(response)
+        # print(response)
     except Exception as error:
         logging.debug(error)
         pass
@@ -145,12 +145,12 @@ def insert_elastic(data):
 if __name__ == "__main__":
     host_performance = get_machine_usage(get_hostname())
     if host_performance:
-        requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
-        logging.debug("Host performance: %s" % host_performance)
+        # requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
+        logging.info("Host performance: %s" % host_performance)
         insert_elastic(host_performance)
 
     container_performance = get_container_usage()
     if container_performance:
-        requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
-        logging.debug("Container performance: %s" % container_performance)
+        # requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
+        logging.info("Container performance: %s" % container_performance)
         insert_elastic(host_performance)

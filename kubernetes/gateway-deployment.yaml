@@ -24,6 +24,10 @@ spec:
         io.kompose.service: gateway
     spec:
       hostNetwork: true
+      hostAliases:
+      - ip: monitornode
+        hostnames:
+          - "monitornode.eqos"
       containers:
       - image: registry:5000/gateway
         name: gateway

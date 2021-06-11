@@ -6,6 +6,7 @@ from datetime import datetime
 from bson.objectid import ObjectId
 import logging
 import time
+from elasticsearch import Elasticsearch
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -29,10 +30,12 @@ with open("config.json") as fh:
 
 
 INTERNAL_CLIENT = pymongo.MongoClient(
-    "mongodb://%s:%s@internaldb:27017" %
-    (conf['internal']['mongo_user'], conf['internal']['mongo_pass'])
+    "mongodb://127.0.0.1:27017"
 )
 
+es = Elasticsearch([
+    '192.168.101.103:9200'
+])
 
 class Test:
     """Endpoint for checking that service is up."""

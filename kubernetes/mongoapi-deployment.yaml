@@ -23,6 +23,10 @@ spec:
       labels:
         io.kompose.service: mongoapi
     spec:
+      hostAliases:
+      - ip: servicenode
+        hostnames:
+          - "servicenode.eqos"
       containers:
       - image: registry:5000/mongoapi
         name: mongoapi
