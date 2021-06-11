@@ -198,8 +198,16 @@ def on_request(path):
                 "gte": (datetime.utcnow() - stepback_time).isoformat()
             }}}})
 
-        app.logger.info("MongoAPI: ", [measurement for measurement in JsonStreamIterator(res)])
-        app.logger.info("Elastic: ", [x["_source"] for x in elasticResponse["hits"]["hits"]])
+        f = open("mongo.txt", "w+")
+        f.write('\n'.join([measurement for measurement in JsonStreamIterator(res)]))
+        f.close()
+
+        f = open("elastic.txt", "w+")
+        f.write('\n'.join([x["_source"] for x in elasticResponse["hits"]["hits"]]))
+        f.close()
+
+        # app.logger.info("MongoAPI: ", [measurement for measurement in JsonStreamIterator(res)])
+        # app.logger.info("Elastic: ", [x["_source"] for x in elasticResponse["hits"]["hits"]])
         return ''
 
     if not is_allowed(path):
