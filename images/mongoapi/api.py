@@ -34,9 +34,8 @@ INTERNAL_CLIENT = pymongo.MongoClient(
 )
 
 es = Elasticsearch([
-    '192.168.101.103:9200'
+    'monitornode.eqos:9200'
 ])
-
 
 class Test:
     """Endpoint for checking that service is up."""
