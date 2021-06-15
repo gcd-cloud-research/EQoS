@@ -213,17 +213,18 @@ def on_request(path):
             '$sort': [('usage.time', 1)],
             '$test': True
         }
-        mongoRes = requests.get('http://mongoapi:8000/query/performance', data=json.dumps(elasticQuery),
+        elasticRes = requests.get('http://mongoapi:8000/query/performance', data=json.dumps(elasticQuery),
                            timeout=5 / 2,
-                           stream=True)
+                           stream=False)
 
         f = open("mongo.txt", "w+")
-        f.write('\n'.join([json.dumps(measurement) for measurement in JsonStreamIterator(mongoRes)]))
+        f.write('\n'.join([json.dumps(measurement) for measurement in json.loads(res.text)]))
         f.close()
 
         f = open("elastic.txt", "w+")
-        app.logger.info(res.json())
-        f.write('\n'.join([json.dumps(x["_source"]) for x in res.json()["hits"]["hits"]]))
+        jsonResp = json.loads(elasticRes.text)
+        f.write('\n'.join([json.dumps(x) for x in jsonResp]))
+        # f.write('\n'.join([json.dumps(x["_source"]) for x in elasticRes.json()["hits"]["hits"]]))
         f.close()
 
         # app.logger.info("MongoAPI: ", [measurement for measurement in JsonStreamIterator(res)])

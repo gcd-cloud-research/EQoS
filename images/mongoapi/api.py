@@ -64,7 +64,7 @@ class Query:
         if 'id' in query:
             query['_id'] = ObjectId(query.pop('id'))
 
-        stream = collection == 'performance'
+        stream = False
         if 'stream' in query:
             stream = query.pop('stream')
 
@@ -86,19 +86,20 @@ class Query:
 
         logging.debug(query)
 
-        if not test:#collection == "tasks":
+        if collection == "tasks":
             query_result = INTERNAL_CLIENT.ehqos[collection].find(query, limit=limit)
-        elif test:# collection == "performance":
+            query_result = query_result.sort(sort) if sort else query_result
+            query_result = map(lambda x: Query.format_id(x), query_result)
+        elif collection == "performance":
             query_result = es.search(index="performance", filter_path=['hits.hits._source'],
-                                     body=req.media if req.media else {}, size=1000 if limit != 0 else limit,
+                                     body=req.media if req.media else {}, size=1000 if limit == 0 else limit,
                                      sort="%s:%s".format(sort[0][0], "desc" if sort[0][0] == -1 else "asc"))
             #  '$sort': [('usage.time', -1)]
+            query_result = [x["_source"] for x in query_result["hits"]["hits"]]
         else:
             resp.status = falcon.HTTP_404
             return
 
-        query_result = query_result.sort(sort) if sort else query_result
-        query_result = map(lambda x: Query.format_id(x), query_result)
         if stream:
             resp.stream = map(lambda x: json.dumps(x).encode('utf-8'), query_result)
         else:
