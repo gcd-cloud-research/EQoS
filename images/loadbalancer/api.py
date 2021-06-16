@@ -106,10 +106,10 @@ class Worker:
             return
 
         container_names = list(map(lambda pod: pod['container'], pods))
-        logging.debug("Querying for pods %s" % [container_names])
+        logging.debug("Querying for pods %s" % container_names)
         # Get worker performance
         res = get_elastic_data(datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL),
-                               container=','.join(container_names))
+                               container=container_names)
 
         # Aggregate performances for each container
         performance = {}
