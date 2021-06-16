@@ -9,7 +9,7 @@ from elasticsearch import Elasticsearch
 
 logging.basicConfig(level=logging.DEBUG)
 
-config.load_incluster_config()
+# config.load_incluster_config()
 KUBE_API = client.CoreV1Api()
 
 LOAD_CHECKING_INTERVAL = 3 * 60  # Amount of seconds to go back when averaging load for choosing least busy container
@@ -65,7 +65,7 @@ def get_elastic_data(query_time, container=None, host=None):
                              body=elasticQuery, size=1000,
                              sort="usage.time:desc")
 
-    return [x["_source"] for x in query_result["hits"]["hits"]]
+    return [x["_source"] for x in query_result["hits"]["hits"] if "_source" in x]
 
 
 class JsonStreamIterator:
