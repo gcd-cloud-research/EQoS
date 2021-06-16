@@ -17,6 +17,10 @@ spec:
       labels:
         io.kompose.service: detection
     spec:
+      hostAliases:
+        - ip: monitornode
+          hostnames:
+            - "monitornode.eqos"
       containers:
       - image: registry:5000/anomalies-in-performance
         name: detection

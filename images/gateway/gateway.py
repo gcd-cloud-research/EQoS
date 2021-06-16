@@ -7,7 +7,7 @@ import requests
 from kubernetes import client, config
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch
 
 config.load_kube_config(config_file='/kube/config')
 KUBE_API = client.CoreV1Api()
@@ -179,56 +179,8 @@ def get_best_host(service_name):
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def on_request(path):
     app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
-    time = datetime.utcnow()
 
     if not path:  # If /, return 200 (for testing)
-        stepback_time = timedelta(seconds=10)
-        res = requests.get(
-            'http://mongoapi:8000/query/performance',
-            data=json.dumps({
-                'usage.time': {'$gte': (time - stepback_time).isoformat()},
-                'container': {'$exists': True},
-                '$sort': [('usage.time', 1)]
-            }),
-            timeout=5 / 2,
-            stream=True
-        )
-        elasticQuery = {"query": {
-            "bool": {
-                "must": [
-                    {
-                        "range": {
-                            "usage.time": {
-                                "gte": (time - stepback_time).isoformat()
-                            }
-                        }
-                    },
-                    {
-                        "exists": {
-                            "field": "container"
-                        }
-                    }
-                ]}
-        },
-            '$sort': [('usage.time', 1)],
-            '$test': True
-        }
-        elasticRes = requests.get('http://mongoapi:8000/query/performance', data=json.dumps(elasticQuery),
-                           timeout=5 / 2,
-                           stream=False)
-
-        f = open("mongo.txt", "w+")
-        f.write('\n'.join([json.dumps(measurement) for measurement in json.loads(res.text)]))
-        f.close()
-
-        f = open("elastic.txt", "w+")
-        jsonResp = json.loads(elasticRes.text)
-        f.write('\n'.join([json.dumps(x) for x in jsonResp]))
-        # f.write('\n'.join([json.dumps(x["_source"]) for x in elasticRes.json()["hits"]["hits"]]))
-        f.close()
-
-        # app.logger.info("MongoAPI: ", [measurement for measurement in JsonStreamIterator(res)])
-        # app.logger.info("Elastic: ", [x["_source"] for x in elasticResponse["hits"]["hits"]])
         return ''
 
     if not is_allowed(path):

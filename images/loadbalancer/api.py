@@ -5,6 +5,7 @@ import logging
 import falcon
 import requests
 from kubernetes import client, config
+from elasticsearch import Elasticsearch
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -16,6 +17,10 @@ SYSTEM_LOAD_BACKTRACKING_TIME = 10  # Small amount, but enough to make sure we g
 JOB_CREATION_THRESHOLD = 80
 PERFORMANCE_URL = 'http://mongoapi:8000/query/performance'
 
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
+
 
 def add_dicts(dict1, dict2):
     if dict1.keys() != dict2.keys():
@@ -24,6 +29,43 @@ def add_dicts(dict1, dict2):
     for key in dict1.keys():
         result[key] = dict1[key] + dict2[key]
     return result
+
+
+def get_elastic_data(query_time, container=None, host=None):
+    elasticQuery = {
+        "query": {
+            "bool": {
+                "must": [
+                    {
+                        "range": {
+                            "usage.time": {
+                                "gte": query_time
+                            }
+                        }
+                    }
+                ]}
+        }
+    }
+
+    if container:
+        elasticQuery["query"]["bool"]["filter"] = {
+            "terms": {
+                "container": container
+            }
+        }
+
+    if host:
+        elasticQuery["query"]["bool"]["must"].append({
+            "exists": {
+                "field": "host"
+            }
+        })
+
+    query_result = es.search(index="performance", filter_path=['hits.hits._source'],
+                             body=elasticQuery, size=1000,
+                             sort="usage.time:desc")
+
+    return [x["_source"] for x in query_result["hits"]["hits"]]
 
 
 class JsonStreamIterator:
@@ -66,25 +108,12 @@ class Worker:
         container_names = list(map(lambda pod: pod['container'], pods))
         logging.debug("Querying for pods %s" % [container_names])
         # Get worker performance
-        res = requests.get(PERFORMANCE_URL, json={
-            'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL)).isoformat()},
-            'container': {'$in': ','.join(container_names)},
-            '$sort': [('usage.time', -1)]
-        })
-
-        logging.debug("Received response %d" % res.status_code)
-
-        # If failed, return first pod
-        if res.status_code != 200:
-            resp.body = json.dumps(pods[0])
-            res.close()
-            return
-
-        logging.debug("Response: %s", res)
+        res = get_elastic_data(datetime.utcnow() - timedelta(seconds=LOAD_CHECKING_INTERVAL),
+                               container=','.join(container_names))
 
         # Aggregate performances for each container
         performance = {}
-        for entry in JsonStreamIterator(res):
+        for entry in res:
             if not entry:
                 continue
 
@@ -96,7 +125,6 @@ class Worker:
             performance[container]['memory'] += entry['usage']['memory']
             performance[container]['count'] += 1
 
-        res.close()
         # If there is no data, return first pod
         if not performance:
             resp.body = json.dumps(pods[0])
@@ -117,37 +145,31 @@ class Worker:
 
 class SystemLoad:
     def on_get(self, req, resp):
-        res = requests.get(PERFORMANCE_URL, data=json.dumps({
-            'usage.time': {'$gte': (datetime.utcnow() - timedelta(seconds=SYSTEM_LOAD_BACKTRACKING_TIME)).isoformat()},
-            'host': {'$exists': True},
-            '$sort': [('usage.time', -1)]
-        }))
+        res = get_elastic_data((datetime.utcnow() - timedelta(seconds=SYSTEM_LOAD_BACKTRACKING_TIME)).isoformat(), host=True)
 
         can_run_job = True
-        if res.status_code != 200:
-            res.close()
-        else:
-            included_hosts = []
-            host_usages = []
-            # Last usage of each host
-            for entry in JsonStreamIterator(res):
-                if entry['host'] not in included_hosts:
-                    del entry['usage']['time']
-                    host_usages.append(entry['usage'])
-                    included_hosts.append(entry['host'])
+        included_hosts = []
+        host_usages = []
 
-            if len(host_usages) == 0:
-                resp.body = json.dumps({'status': False})
-                return
+        # Last usage of each host
+        for entry in res:
+            if entry['host'] not in included_hosts:
+                del entry['usage']['time']
+                host_usages.append(entry['usage'])
+                included_hosts.append(entry['host'])
 
-            # Average usages
-            from functools import reduce
-            logging.debug("Dicts: %s" % add_dicts)
-            logging.debug("Hosts: %s" % host_usages)
-            accums = reduce(add_dicts, host_usages)
-            for value in accums.values():
-                if value / len(included_hosts) > JOB_CREATION_THRESHOLD:
-                    can_run_job = False
+        if len(host_usages) == 0:
+            resp.body = json.dumps({'status': False})
+            return
+
+        # Average usages
+        from functools import reduce
+        logging.debug("Dicts: %s" % add_dicts)
+        logging.debug("Hosts: %s" % host_usages)
+        accums = reduce(add_dicts, host_usages)
+        for value in accums.values():
+            if value / len(included_hosts) > JOB_CREATION_THRESHOLD:
+                can_run_job = False
 
         resp.body = json.dumps({'status': can_run_job})
 

@@ -8,3 +8,4 @@ pymongo==3.10.1
 requests==2.23.0
 scipy==1.4.1
 urllib3==1.25.9
+elasticsearch>=7.0.0,<8.0.0

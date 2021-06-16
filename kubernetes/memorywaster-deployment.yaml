@@ -16,6 +16,10 @@ spec:
         io.kompose.service: memorywaster
     spec:
       containers:
+        - hostAliases:
+            - ip: monitornode
+              hostnames:
+                - "monitornode.eqos"
       - image: registry:5000/memorywaster
         name: memorywaster
         resources: {}

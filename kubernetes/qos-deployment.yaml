@@ -17,6 +17,10 @@ spec:
       labels:
         io.kompose.service: qos
     spec:
+      hostAliases:
+        - ip: monitornode
+          hostnames:
+            - "monitornode.eqos"
       containers:
       - image: registry:5000/loadbalancer
         name: loadbalancer

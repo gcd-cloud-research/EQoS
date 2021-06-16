@@ -190,6 +190,8 @@ class TaskPerformance:
 
         Filters are obtained by body parameters.
         """
+        resp.status = falcon.HTTP_404
+        return
         query = req.params if req.params else {}
         logging.debug(query)
 

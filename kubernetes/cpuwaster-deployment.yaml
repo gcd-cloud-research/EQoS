@@ -15,6 +15,10 @@ spec:
       labels:
         io.kompose.service: cpuwaster
     spec:
+      hostAliases:
+        - ip: monitornode
+          hostnames:
+            - "monitornode.eqos"
       containers:
       - image: registry:5000/cpuwaster
         name: cpuwaster

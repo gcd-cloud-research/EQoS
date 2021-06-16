@@ -2,12 +2,17 @@ import os
 import signal
 from time import sleep
 import logging
+from elasticsearch import Elasticsearch
 
 import pymongo
 
 logging.basicConfig(level=logging.INFO)
 TARGET_LOAD = 80
 TOLERANCE = 5
+
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
 
 
 def waster():
@@ -24,7 +29,6 @@ if __name__ == '__main__':
 
     global shouldFill
     logging.info(host)
-    client = pymongo.MongoClient('mongodb://admin:toor@internaldb:27017')
     shouldFill = True
     pids = []
 
@@ -33,11 +37,19 @@ if __name__ == '__main__':
         last_perf = None
         while not last_perf:
             try:
-                last_perf = list(client.ehqos.performance
-                                 .find({'host': host})
-                                 .sort([('usage.time', pymongo.DESCENDING)])
-                                 .limit(1)
-                                 )
+                elasticQuery = {
+                    "query": {
+                        "match": {
+                            "host": host
+                        }
+                    }
+                }
+
+                query_result = es.search(index="performance", filter_path=['hits.hits._source'],
+                                         body=elasticQuery, size=1,
+                                         sort="usage.time:desc")
+
+                last_perf = [x["_source"] for x in query_result["hits"]["hits"]]
                 last_perf = last_perf[0] if len(last_perf) > 0 else None
             except Exception:
                 logging.error("Status update failed")
