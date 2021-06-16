@@ -61,7 +61,7 @@ def get_elastic_data(query_time, container=None, host=None):
             }
         })
 
-    query_result = es.search(index="performance", filter_path=['hits.hits._source'],
+    query_result = es.search(index="performance",
                              body=elasticQuery, size=1000,
                              sort="usage.time:desc")
 

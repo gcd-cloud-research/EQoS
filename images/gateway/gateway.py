@@ -172,7 +172,7 @@ def get_best_host(service_name):
     if res.status_code != 200:
         return res.status_code, None
     best_pod = LitePod.decode(res.json())
-    return res.status_code, 'D%s:%s' % (best_pod.host_ip, get_port(best_pod))
+    return res.status_code, '%s:%s' % (best_pod.host_ip, get_port(best_pod))
 
 
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
