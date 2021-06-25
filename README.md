@@ -2,6 +2,7 @@
 
 ## Authors
 
+* Lluís Mas Ruiz <lluis.mas@udl.cat>
 * Pere Piñol Pueyo <perepinol@gmail.com>
 * Supervisors:
   * Jordi Mateo Fornés <jordi.mateo@udl.cat>, @github/JordiMateoUdL
@@ -16,6 +17,7 @@ The repository contains all code related to an eHQoS implementation.
 * _obsolete_: Files that are no longer needed, but are included because they may clarify some aspects of the implementation.
 * _test-routines_: Files that were submitted as routines to test the implementation's performance.
 * _utils_: Scripts that may be useful to manage the cluster.
+* _automation_: Ansible playbooks to easily deploy a new cluster.
 
 ## Using the utils
 
