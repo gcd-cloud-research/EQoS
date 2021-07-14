@@ -20,6 +20,7 @@ chan.queue_declare(queue='jobs', durable=True)
 registry = os.environ['REGISTRY']
 LOAD_URL = 'http://qos:8000/sysload'
 STATUS_URL = 'http://mongoapi:8000/routine/'
+alwaysCreate = True
 
 
 def change_job_status(rid, st):
@@ -75,7 +76,7 @@ def callback(channel, method, properties, body):
     logging.info("Received id %s, extension %s tags %s" % (routine_id, extension, method.delivery_tag))
     logging.info(channel)
 
-    if can_create_job():
+    if can_create_job() or alwaysCreate:
         logging.info("LoadBalancer allows creation. Starting")
         job = create_job(routine_id, extension)
         try:
