@@ -195,7 +195,7 @@ def on_request(path):
     # Get the service related to this path
     mapped_service = ROUTE_MAP[service] if service in ROUTE_MAP else ''
     if not mapped_service:
-        app.logger.info('Desired service not in mapping')
+        app.logger.info('Desired service %s not in mapping' % service)
         abort(404)
         return
 
