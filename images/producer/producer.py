@@ -8,6 +8,9 @@ from werkzeug.utils import secure_filename
 import requests
 import docker
 import pika
+from kubernetes import client, config
+from kubernetes.client.rest import ApiException
+kube_api = client.BatchV1Api()
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -27,6 +30,8 @@ docker_api = docker.from_env()
 rpipe, wpipe = os.pipe()
 
 ROUTINE_URL = 'http://mongoapi:8000/routine/'
+
+bypassQoS = True
 
 
 class Requirements:
@@ -92,11 +97,56 @@ def build_and_push(rid, extension):
     os.chdir('/')
 
 
+def change_job_status(rid, st):
+    res = None
+    while not res:
+        try:
+            logging.debug("Changing task status")
+            res = requests.post('http://mongoapi:8000/routine/' + rid, json.dumps({'status': st}))
+            logging.debug("Request done: %s" % res)
+        except requests.exceptions.ConnectionError:
+            logging.error("Status update failed")
+
+    if res.status_code != 200:
+        logging.warning("Could not change job status: %s" % res.text)
+    else:
+        logging.info('Status changed to %s' % st)
+
+
 def create_routine(routine_id, extension):
     app.logger.info("Routine ID: %s" % routine_id)
     # Build Docker image for routine and upload to registry
     build_and_push(routine_id, extension)
 
+    if bypassQoS:
+        # Create job base object
+        job = client.V1Job(api_version='batch/v1', kind='Job')
+        # Fill with metadata
+        job.metadata = client.V1ObjectMeta(name=routine_id)
+        # Prepare template object
+        job.spec = client.V1JobSpec(
+            template=client.V1PodTemplateSpec(
+                spec=client.V1PodSpec(
+                    containers=[client.V1Container(
+                        name=routine_id,
+                        image="%s/%s" % (registry, routine_id),
+                        args=["wrapper.py", routine_id, extension]
+                    )],
+                    restart_policy='Never'
+                )
+            ),
+            backoff_limit=4
+        )
+        res = kube_api.create_namespaced_job('default', job)
+        logging.info("Created")
+        logging.debug(res)
+
+        f = open("acklog.txt", "a+")
+        f.write("ACK: %s \n" % routine_id)
+        f.close()
+
+        change_job_status(routine_id, 'QUEUED')
+        return
     # Submit job for creation
     conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
     chan = conn.channel()
