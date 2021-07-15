@@ -16,10 +16,7 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "/tmp"
 ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 POSSIBLE_FILES = ['program', 'requirements']
-
-es = Elasticsearch([
-    'monitornode.eqos:9200'
-])
+usingQos = False
 
 ROUTE_MAP = {
     'mongo': 'mongoapi',
@@ -31,7 +28,8 @@ ALLOWED_ROUTES = [
     r'^mongo/query/performance',
     r'^mongo/taskperformance',
     r'^mongo/taskstatus',
-    r'^routine$'
+    r'^routine$',
+    r'^bareroutine$'
 ]
 
 
@@ -243,5 +241,7 @@ def on_request(path):
 
 
 if __name__ == '__main__':
-    QOS = get_qos()
+    if usingQos:
+        QOS = get_qos()
+
     app.run(debug=True, host='0.0.0.0')
