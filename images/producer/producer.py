@@ -10,6 +10,7 @@ import docker
 import pika
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+config.load_incluster_config()
 kube_api = client.BatchV1Api()
 
 import logging
