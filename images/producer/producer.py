@@ -138,7 +138,9 @@ def create_routine(routine_id, extension):
                         name="routine-claim0",
                         host_path=client.V1HostPathVolumeSource(path="/etc/hostname"))
                     ],
-                    restart_policy='Never'
+                    restart_policy='Never',
+                    dns_policy="ClusterFirstWithHostNet",
+                    host_network=True
                 )
             ),
             backoff_limit=4
