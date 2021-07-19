@@ -131,8 +131,13 @@ def create_routine(routine_id, extension):
                     containers=[client.V1Container(
                         name=routine_id,
                         image="%s/%s" % (registry, routine_id),
-                        args=["wrapper.py", routine_id, extension]
+                        args=["wrapper.py", routine_id, extension],
+                        volume_mounts=[client.V1VolumeMount(mount_path="/hostname", name="routine-claim0")]
                     )],
+                    volumes=[client.V1Volume(
+                        name="routine-claim0",
+                        host_path=client.V1HostPathVolumeSource(path="/etc/hostname"))
+                    ],
                     restart_policy='Never'
                 )
             ),
