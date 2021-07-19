@@ -5,6 +5,8 @@ import json
 import os
 import logging
 import requests
+import pymongo
+from bson.objectid import ObjectId
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -12,13 +14,27 @@ def exists(path):
     return os.path.isfile("./" + path)
 
 
+byPassQos = True
 LOG = "log.log"
 RES = "results.json"
-URL = 'http://mongoapi:8000/routine/' + sys.argv[1]
+
+if byPassQos:
+    INTERNAL_CLIENT = pymongo.MongoClient(
+        'mongodb://%s:%s@internaldb:27017' % ('admin', 'toor')
+    )
+else:
+    URL = 'http://mongoapi:8000/routine/' + sys.argv[1]
+
+routine_id = sys.argv[1]
 
 # Set routine as RUNNING
 logging.debug("Starting...")
-requests.post(URL, data=json.dumps({'status': 'RUNNING'}))
+
+if byPassQos:
+    INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": {'status': 'RUNNING'}})
+else:
+    requests.post(URL, data=json.dumps({'status': 'RUNNING'}))
+
 logging.debug("Routine set as RUNNING")
 
 # Run routine
@@ -49,10 +65,18 @@ if exists(RES):
 
 logging.debug("Saving to database")
 # Save results in database
-requests.post(URL, data=json.dumps({
-    'status': 'SUCCESS' if status == 0 else 'FAILURE',
-    'logs': log,
-    'results': results
-}))
+
+if byPassQos:
+    INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": {
+        'status': 'SUCCESS' if status == 0 else 'FAILURE',
+        'logs': log,
+        'results': results
+    }})
+else:
+    requests.post(URL, data=json.dumps({
+        'status': 'SUCCESS' if status == 0 else 'FAILURE',
+        'logs': log,
+        'results': results
+    }))
 
 logging.debug("Completed")
