@@ -63,6 +63,7 @@ def get_usage(part):
     if len(part_stats) < 2:
         return None
     # Extract relevant data
+
     time, cpu, num_cores, mem = get_stats(part_stats[-1])
     prev_time, prev_cpu, _, _ = get_stats(part_stats[-2])
 
@@ -71,7 +72,7 @@ def get_usage(part):
         return None
 
     cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
-    cpu_percent = float(cpu_usage) / float(num_cores) * 100  # Over number of host cores
+    cpu_percent = float(cpu_usage) / float(num_cores) * 100 if cpu_usage > 0 else 0  # Over number of host cores
     mem_percent = float(mem) / float(part['spec']['memory']['limit']) * 100  # Over container's reservation
     return {
         "time": time,
