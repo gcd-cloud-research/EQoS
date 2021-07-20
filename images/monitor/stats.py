@@ -19,7 +19,9 @@ LAST_REPORT_FILE = 'reports.json'
 def get_last_report(name):
     """Get last report time for given name (container or machine)."""
     with open(LAST_REPORT_FILE) as fh:
-        j = json.load(fh)
+        fh = fh.read()
+        j = json.loads(fh)
+        logging.info("LAST: %s" % j)
         if name in j:
             last = j[name]
         else:
@@ -48,10 +50,11 @@ def nanosecs(ts):
 
 
 def get_stats(entry):
+    per_cpu_usage = len(entry['cpu']['usage']['per_cpu_usage']) if 'per_cpu_usage' in entry['cpu']['usage'] else 0
     return \
         entry['timestamp'],\
         entry['cpu']['usage']['total'],\
-        len(entry['cpu']['usage']['per_cpu_usage']),\
+        per_cpu_usage,\
         entry['memory']['usage']
 
 
