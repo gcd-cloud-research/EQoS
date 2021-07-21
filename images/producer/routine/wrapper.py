@@ -7,6 +7,7 @@ import logging
 import requests
 import pymongo
 from bson.objectid import ObjectId
+from datetime import datetime
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -70,7 +71,8 @@ if byPassQos:
     INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": {
         'status': 'SUCCESS' if status == 0 else 'FAILURE',
         'logs': log,
-        'results': results
+        'results': results,
+        'end_time': datetime.utcnow().isoformat()
     }})
 else:
     requests.post(URL, data=json.dumps({
