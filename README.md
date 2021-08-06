@@ -12,7 +12,7 @@
 
 ## Background
 
-The primary purpose of this work is to present a cloud architecturebased on containers aimed at guaranteeing a defined level of QoS regarding cost, resource usage, and servicelevel agreement. The main contribution of this proposal is its dynamic autoscaling capabilities of adjustingsystem resources to the current workload while ensuring QoS constraints.
+The primary purpose of this work is to present a cloud architecture based on containers aimed at guaranteeing a defined level of QoS regarding cost, resource usage, and service level agreement. The main contribution of this proposal is its dynamic autoscaling capabilities of adjustingsystem resources to the current workload while ensuring QoS constraints.
 
 ## About
 
