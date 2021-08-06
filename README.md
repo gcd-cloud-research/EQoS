@@ -1,4 +1,4 @@
-# A QoS-aware container-based privatecloud with dynamic autoscaling
+# A QoS-aware container-based private cloud with dynamic autoscaling
 
 ## About
 
