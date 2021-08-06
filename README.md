@@ -1,16 +1,22 @@
-# eHQoS
-
-## Authors
-
-* Lluís Mas Ruiz <lluis.mas@udl.cat>
-* Pere Piñol Pueyo <perepinol@gmail.com>
-* Supervisors:
-  * Jordi Mateo Fornés <jordi.mateo@udl.cat>, @github/JordiMateoUdL
-  * Francesc Solsona Tehàs <francesc.solsona@udl.cat>
+# A QoS-aware container-based privatecloud with dynamic autoscaling
 
 ## About
 
-The repository contains all code related to an eHQoS implementation.
+* **Authors**: 
+  * Lluís Mas Ruiz <lluis.mas@udl.cat>, @github/LluisMas
+  * Pere Piñol Pueyo <perepinol@gmail.com>
+* **Supervisors**:
+  * Jordi Mateo Fornés <jordi.mateo@udl.cat>, @github/JordiMateoUdL
+  * Francesc Solsona Tehàs <francesc.solsona@udl.cat>
+  * Jordi Vilaplana Mayoral <jordi.vilaplana@udl.cat>
+
+## Background
+
+The primary purpose of this work is to present a cloud architecturebased on containers aimed at guaranteeing a defined level of QoS regarding cost, resource usage, and servicelevel agreement. The main contribution of this proposal is its dynamic autoscaling capabilities of adjustingsystem resources to the current workload while ensuring QoS constraints.
+
+## About
+
+The repository contains all code related to deploy the implementation and the tests.
 
 * _images_: Contains all the services used in the implementation, grouped so that building them is easier.
 * _kubernetes_: .yaml files to deploy the services in a Kubernetes cluster.
