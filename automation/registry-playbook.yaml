@@ -1,0 +1,48 @@
+- hosts: dockerregistry
+  become: true
+  tasks:
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docer-ce.repo
+      become: yes
+
+    - name: Install Docker
+      yum:
+        name: "{{ item }}"
+        state: present
+        update_cache: True
+      with_items:
+        - lvm2
+        - docker
+        - containerd.io
+        - epel-release
+        - python3
+        - python3-requests
+
+    - pip:
+        name: docker
+        executable: pip-3
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Enable Docker service
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Pull Registry image
+      docker_image:
+        name: registry
+        source: pull
+
+    - name: Create Registry container
+      docker_container:
+        name: registry
+        image: registry
+        ports:
+          - "5000:5000"
+        restart_policy: unless-stopped

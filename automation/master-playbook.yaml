@@ -1,0 +1,40 @@
+---
+- hosts: kubernetesmaster
+  become: true
+  tasks:
+    - name: Install utils packages
+      yum:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        packages:
+          - vim
+
+    - name: Reset the Kubernetes cluster using kubeadm
+      command: kubeadm reset -f
+
+    - name: Initializing Kubernetes cluster
+      shell: kubeadm init
+      register: output
+
+    - name: Setup kubeconfig
+      command: "{{ item }}"
+      with_items:
+        - mkdir -p $HOME/.kube
+        - /bin/cp -rf /etc/kubernetes/admin.conf $HOME/.kube/config
+        - chown root:root $HOME/.kube/config
+
+    - name: Storing Logs and Generated token for future purpose.
+      local_action: copy content={{ output.stdout }} dest=join_token
+      become: False
+
+    - name: Generate join binary file
+      shell: |
+        cat join_token | tail -2 > out.sh
+
+    - name: Remove '%' from the output file
+      shell: sed -i -e "s/\^\%//g" out.sh
+
+    - name: Add Network plugin
+      shell: kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"

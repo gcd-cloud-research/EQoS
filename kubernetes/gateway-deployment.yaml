@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+    kompose.version: 1.19.0 (f63a961c)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: gateway
+    io.kubernetes.replicas: '1'
+  name: gateway
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: gateway
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../dockerenv/docker-compose.yml
+        kompose.version: 1.19.0 (f63a961c)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: gateway
+    spec:
+      hostNetwork: true
+      hostAliases:
+      - ip: monitornode
+        hostnames:
+          - "monitornode.eqos"
+      containers:
+      - image: registry:5000/gateway
+        name: gateway
+        ports:
+        - containerPort: 8000
+        resources: {}
+      restartPolicy: Always
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
+status: {}

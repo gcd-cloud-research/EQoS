@@ -1,0 +1,26 @@
+- hosts: kubernetesmonitor:kubernetesmaster
+  name: Gather facts from collectors
+  tasks: [ ]
+
+- hosts: kubernetesmonitor
+  become: true
+  tasks:
+    - pip:
+        name: docker
+        executable: pip-3
+
+    - name: Create Elastic network
+      docker_network:
+        name: elastic
+
+    - name: Copy Kibana deployment to the monitor node
+      copy: src=../utils/buildkibana.sh dest=buildkibana.sh mode=0777
+
+    - name: Build kibana
+      command: sh buildkibana.sh
+
+    - name: Copy Elastic deployment to the monitor node
+      copy: src=../utils/buildelasticsearch.sh dest=buildelasticsearch.sh mode=0777
+
+    - name: Build Elastic
+      command: sh buildelasticsearch.sh

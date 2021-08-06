@@ -7,10 +7,14 @@ from luminol.anomaly_detector import AnomalyDetector
 from luminol.exceptions import NotEnoughDataPoints
 import requests
 from pymongo import MongoClient
+from elasticsearch import Elasticsearch
 
-PERFORMANCE_URL = 'http://mongoapi:8000/query/performance'
 T = 1 * 60  # Seconds between checks
 MONGO_CLIENT = MongoClient("mongodb://admin:toor@internaldb:27017")
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
+
 
 class JsonStreamIterator:
     # Does not accept lists as items, as it only needs to process performance objects
@@ -37,20 +41,36 @@ class JsonStreamIterator:
 
 
 def get_data(start_time, is_container=True):
-    res = requests.get(PERFORMANCE_URL, data=json.dumps({
-        'usage.time': {'$gte': start_time.isoformat()},
-        'container': {'$exists': is_container},
+    elasticQuery = {"query": {
+        "bool": {
+            "must": [
+                {
+                    "range": {
+                        "usage.time": {
+                            "gte": start_time.isoformat()
+                        }
+                    }
+                },
+                {
+                    "exists": {
+                        "field": "container" if is_container else "pod"
+                    }
+                }
+            ]}
+        },
         '$sort': [('usage.time', -1)]
-    }))
-    if res.status_code != 200:
-        res.close()
-        return {}
+    }
+    query_result = es.search(index="performance", filter_path=['hits.hits._source'],
+                             body=elasticQuery, size=1000,
+                             sort="usage.time:desc")
 
-    data = {}
-    for entry in JsonStreamIterator(res):
-        container = entry.pop('container')
-        data[container] = data[container] + [entry] if container in data else [entry]
-    return data
+    res = [x["_source"] for x in query_result["hits"]["hits"]]
+
+    l_data = {}
+    for entry in res:
+        l_container = entry.pop('container')
+        l_data[l_container] = l_data[l_container] + [entry] if l_container in l_data else [entry]
+    return l_data
 
 
 def upload_anomalies(anom_list):

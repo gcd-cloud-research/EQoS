@@ -1,0 +1,100 @@
+<mxfile host="app.diagrams.net" modified="2021-07-02T10:38:07.182Z" agent="5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36" etag="Dgt5rtgdXND9nT0-xEnT" version="14.8.2" type="github">
+  <diagram id="zk3etb71-JK0dPLFHRz3" name="Page-1">
+    <mxGraphModel dx="482" dy="487" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="0TKvvsBauhQPl4TRVan4-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-1" target="0TKvvsBauhQPl4TRVan4-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-1" value="PENDING" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="373" y="180" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-2" target="0TKvvsBauhQPl4TRVan4-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-2" value="" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="399" y="50" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-4" value="Task is submitted" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="420" y="150" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-5" target="0TKvvsBauhQPl4TRVan4-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-5" value="Gateway&lt;br&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="388.25" y="130" width="51.5" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-8" target="0TKvvsBauhQPl4TRVan4-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-26" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.461;entryY=-0.011;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-8" target="0TKvvsBauhQPl4TRVan4-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-8" value="BUILT" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="373" y="250" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-10" value="Producer builds the Docker image &lt;br&gt;and Pushes it to the Registry" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="414" y="210" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-11" target="0TKvvsBauhQPl4TRVan4-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-11" value="QUEUED" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="373.5" y="310" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-13" value="Consumer takes the task, &lt;br&gt;wraps it and creates a Pod for it" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="424" y="280" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-21" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-14" target="0TKvvsBauhQPl4TRVan4-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-22" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-14" target="0TKvvsBauhQPl4TRVan4-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-14" value="RUNNING" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="373.5" y="370" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;curved=1;fillColor=#f8cecc;strokeColor=#b85450;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-1" target="0TKvvsBauhQPl4TRVan4-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="195" />
+              <mxPoint x="350" y="160" />
+              <mxPoint x="393" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-17" value="Loadbalancer does not &lt;br&gt;approve its creation" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="150" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-18" value="The new Pod is created and &lt;br&gt;the task starts running" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="434" y="340" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-19" value="FAILURE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="434" y="430" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-20" value="SUCCESS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="318" y="430" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-23" value="Task finished with errors" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="444" y="400" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-24" value="&lt;span style=&quot;color: rgb(0 , 0 , 0) ; font-family: &amp;#34;helvetica&amp;#34; ; font-size: 12px ; font-style: normal ; font-weight: 400 ; letter-spacing: normal ; text-align: center ; text-indent: 0px ; text-transform: none ; word-spacing: 0px ; background-color: rgb(248 , 249 , 250) ; display: inline ; float: none&quot;&gt;Task finished successfully&lt;/span&gt;" style="text;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="395" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-30" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="0TKvvsBauhQPl4TRVan4-25" target="0TKvvsBauhQPl4TRVan4-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-25" value="HOLD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="249.5" y="280" width="81" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-28" value="Loadbalancer does not &lt;br&gt;approve its creation" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="240" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="0TKvvsBauhQPl4TRVan4-29" value="Loadbalancer&amp;nbsp;its creation" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="330" width="150" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

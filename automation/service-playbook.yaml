@@ -1,0 +1,43 @@
+- hosts: dockerregistry
+  gather_facts: yes
+  tasks:
+    - debug: var=hostvars[inventory_hostname]['ansible_env'].SSH_CONNECTION.split(' ')[2]
+
+- hosts: kubernetesmaster
+  become: true
+  tasks:
+    - name: Basic usage
+      debug:
+        msg: " $kubernetesservice the HOME environment variable."
+
+    - name: Add alias to the master
+      lineinfile:
+        state: present
+        path: "/root/.bashrc"
+        insertbefore: "alias rm='rm -i'"
+        firstmatch: yes
+        line: '{{item}}'
+      with_items:
+        - export REGISTRY="{{ hostvars['registry']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}:5000"
+        - ROOT_DIR=/mnt/public/EQoS
+        - export KUBE_FILE_DIR="$ROOT_DIR"/kubernetes
+        - export IMAGE_DIR="$ROOT_DIR"/images
+        - export UTILS_DIR="$ROOT_DIR"/utils
+        - export PATH="$PATH:$UTILS_DIR"
+        - alias prunepods='kubectl delete pod --field-selector=status.phase==Succeeded && kubectl delete pod --field-selector=status.phase==Failed'
+        - ''
+
+    - name: Build all the images
+      command: buildimages.sh registry:5000
+      tags:
+        - current
+
+    - name: Deploy all the images
+      shell: deployall.sh
+      register: result
+      failed_when:
+        - result.rc == 0
+        - '"AlreadyExists" not in result.stdout'
+        - '"Created" not in result.stdout'
+      tags:
+        - current

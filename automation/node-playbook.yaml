@@ -1,0 +1,86 @@
+- hosts: kubernetesservice:dockerregistry:kubernetesmonitor
+  name: Gather facts from collectors
+  tasks: [ ]
+
+- hosts: kubernetesmaster
+  tasks:
+    - name: Create token
+      command: kubeadm token create --print-join-command
+      register: output
+
+    - name: Storing Logs and Generated token for future purpose.
+      local_action: copy content={{ output.stdout }} dest=out.sh
+      become: False
+
+- hosts: kubernetesnodes[-1]
+  become: true
+  tasks:
+    - name: Reset the Kubernetes cluster using kubeadm
+      command: kubeadm reset -f
+
+    - name: Copy the join command to server location
+      copy: src=out.sh dest=/tmp/out.sh mode=0777
+
+    - name: Join the node to cluster
+      command: sh /tmp/out.sh
+
+    - name: Basic usage
+      debug:
+        msg: " $kubernetesservice the HOME environment variable."
+
+    - name: Add registry env to all the nodes
+      lineinfile:
+        state: present
+        path: "/root/.bashrc"
+        insertbefore: "alias rm='rm -i'"
+        firstmatch: yes
+        line: '{{item}}'
+      with_items:
+        - export REGISTRY="{{ hostvars['registry']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}:5000"
+
+- hosts: kubernetesmaster
+  become: true
+  tasks:
+    - name: Taints the service node
+      command: kubectl taint node {{hostvars[item]['ansible_hostname']}}.localdomain type=internalService:NoSchedule --overwrite
+      with_items: "{{groups['kubernetesservice']}}"
+
+    - name: Labels the service node
+      command: kubectl label nodes {{hostvars[item]['ansible_hostname']}}.localdomain type=internalService
+      with_items: "{{groups['kubernetesservice']}}"
+      register: result
+      failed_when:
+        - result.rc == 1
+        - '"already has a value" not in result.stderr'
+      tags:
+        - current
+
+    - name: Taints the monitor node
+      command: kubectl taint node {{hostvars[item]['ansible_hostname']}}.localdomain type=monitorService:NoSchedule --overwrite
+      with_items: "{{groups['kubernetesmonitor']}}"
+
+    - name: Labels the monitor node
+      command: kubectl label nodes {{hostvars[item]['ansible_hostname']}}.localdomain type=monitorService
+      with_items: "{{groups['kubernetesmonitor']}}"
+      register: result
+      failed_when:
+        - result.rc == 1
+        - '"already has a value" not in result.stderr'
+      tags:
+        - current
+
+- hosts: kubernetesnodes:kubernetesmaster
+  become: true
+  tasks:
+    - name: Edit Daemon.json
+      lineinfile:
+        state: present
+        path: "/etc/docker/daemon.json"
+        insertbefore: "\"storage-driver\": \"overlay2\","
+        firstmatch: yes
+        line: "\"insecure-registries\": [\"{{hostvars['registry']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}:5000\", \"registry:5000\"],"
+
+    - name: Restart Docker service
+      service:
+        name: docker
+        state: restarted

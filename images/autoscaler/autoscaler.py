@@ -10,6 +10,11 @@ import sys
 from kubernetes import client
 from kubernetes.config import load_incluster_config
 from plugins import PluginManager
+from elasticsearch import Elasticsearch
+
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
 
 load_incluster_config()
 KUBE_CLIENT = client.AppsV1Api()
@@ -105,34 +110,47 @@ def monitor_containers(config, wpipe):
         alarm(config.update_seconds)
         received = False
         res = None
+        time = datetime.utcnow()
         try:
-            res = requests.get(
-                'http://mongoapi:8000/query/performance',
-                data=json.dumps({
-                    'usage.time': {'$gte': (datetime.utcnow() - stepback_time).isoformat()},
-                    'container': {'$exists': True},
-                    '$sort': [('usage.time', 1)]
-                }),
-                timeout=config.update_seconds / 2,
-                stream=True
-            )
-            logging.debug("Received response. Time: %d" % res.elapsed.total_seconds())
+            elasticQuery = {"query": {
+                "bool": {
+                    "must": [
+                        {
+                            "range": {
+                                "usage.time": {
+                                    "gte": (time - stepback_time).isoformat()
+                                }
+                            }
+                        },
+                        {
+                            "exists": {
+                                "field": "container"
+                            }
+                        }
+                    ]}
+                }
+            }
+
+            query_result = es.search(index="performance",
+                                     body=elasticQuery, size=1000,
+                                     sort="usage.time:asc")
+
+            res = [x["_source"] for x in query_result["hits"]["hits"]]
+
         except (ex.ConnectionError, ex.ConnectTimeout, ex.ReadTimeout) as e:
-            logging.warning("Could not connect to mongoapi: %s" % e)
+            logging.warning("Could not connect to Elastic: %s" % e)
             os.write(wpipe, ';\n'.encode('utf-8'))
 
         if not res:
             pass
-        elif res.status_code != 200:
-            logging.warning("Received code %d from internaldb: %s" % (res.status_code, res.text))
+        elif not query_result or not query_result["timed_out"]:
             stepback_time += timedelta(seconds=config.update_seconds)  # In next request, ask for all missing data
-            res.close()
 
         else:
             # Pod is overloaded if one container is overloaded.
             # Pod is underloaded if all containers are underloaded
             pods = {}
-            for measurement in JsonStreamIterator(res):
+            for measurement in res:
                 if measurement['pod'] not in pods:
                     pods[measurement['pod']] = 0
 
@@ -145,8 +163,6 @@ def monitor_containers(config, wpipe):
 
                 # If pod is underloaded, its value will be the number of containers, negative
                 pods[measurement['pod']] = 1 if load == 1 else pods[measurement['pod']] + load
-
-            res.close()
 
             # Aggregate all pods under their respective deployment
             deps = filter(

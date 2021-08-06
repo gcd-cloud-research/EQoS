@@ -8,6 +8,13 @@ from werkzeug.utils import secure_filename
 import requests
 import docker
 import pika
+from kubernetes import client, config
+from kubernetes.client.rest import ApiException
+config.load_incluster_config()
+kube_api = client.BatchV1Api()
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 with open('/var/run/secrets/kubernetes.io/serviceaccount/token') as fh:
     token = fh.read()
@@ -24,6 +31,8 @@ docker_api = docker.from_env()
 rpipe, wpipe = os.pipe()
 
 ROUTINE_URL = 'http://mongoapi:8000/routine/'
+
+bypassQoS = True
 
 
 class Requirements:
@@ -73,8 +82,14 @@ def build_and_push(rid, extension):
     docker_api.images.build(path=routine_dir, tag=image_tag)
     docker_api.images.push(image_tag)
 
-    # Update status
-    requests.post(ROUTINE_URL, {'status': 'BUILT'})
+    res = None
+    while not res:
+        try:
+            app.logger.debug("Changing task status")
+            res = requests.post(ROUTINE_URL + rid, json.dumps({'status': 'BUILT'}))
+            app.logger.debug("Request done: %s" % res)
+        except requests.exceptions.ConnectionError:
+            app.logger.error("Status update failed")
 
     # Cleanup
     docker_api.images.remove(image=image_tag)
@@ -83,10 +98,63 @@ def build_and_push(rid, extension):
     os.chdir('/')
 
 
+def change_job_status(rid, st):
+    res = None
+    while not res:
+        try:
+            logging.debug("Changing task status")
+            res = requests.post('http://mongoapi:8000/routine/' + rid, json.dumps({'status': st}))
+            logging.debug("Request done: %s" % res)
+        except requests.exceptions.ConnectionError:
+            logging.error("Status update failed")
+
+    if res.status_code != 200:
+        logging.warning("Could not change job status: %s" % res.text)
+    else:
+        logging.info('Status changed to %s' % st)
+
+
 def create_routine(routine_id, extension):
+    app.logger.info("Routine ID: %s" % routine_id)
     # Build Docker image for routine and upload to registry
     build_and_push(routine_id, extension)
 
+    if bypassQoS:
+        # Create job base object
+        job = client.V1Job(api_version='batch/v1', kind='Job')
+        # Fill with metadata
+        job.metadata = client.V1ObjectMeta(name=routine_id)
+        # Prepare template object
+        job.spec = client.V1JobSpec(
+            template=client.V1PodTemplateSpec(
+                spec=client.V1PodSpec(
+                    containers=[client.V1Container(
+                        name=routine_id,
+                        image="%s/%s" % (registry, routine_id),
+                        args=["wrapper.py", routine_id, extension],
+                     #   volume_mounts=[client.V1VolumeMount(mount_path="/hostname", name="routine-claim0")]
+                    )],
+                    #volumes=[client.V1Volume(
+                      #  name="routine-claim0",
+                     #   host_path=client.V1HostPathVolumeSource(path="/etc/hostname"))
+                    #],
+                    restart_policy='Never',
+                    # host_network=True
+                    #dns_policy="ClusterFirstWithHostNet"
+                )
+            ),
+            backoff_limit=4
+        )
+        res = kube_api.create_namespaced_job('default', job)
+        logging.info("Created")
+        logging.debug(res)
+
+        f = open("acklog.txt", "a+")
+        f.write("ACK: %s \n" % routine_id)
+        f.close()
+
+        change_job_status(routine_id, 'QUEUED')
+        return
     # Submit job for creation
     conn = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
     chan = conn.channel()
@@ -100,10 +168,18 @@ def create_routine(routine_id, extension):
 
 def initialise_in_db(routine_name):
     # Initialise routine in database
-    res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
-        'name': routine_name,
-        'issuer': '?'
-    }))
+    app.logger.debug("Initializing %s" % routine_name)
+
+    res = None
+    while not res:
+        try:
+            res = requests.post(ROUTINE_URL + 'new', data=json.dumps({
+                'name': routine_name,
+                'issuer': '?'
+            }))
+        except requests.exceptions.ConnectionError:
+            app.logger.info("Retrying request")
+
     if res.status_code != 200:
         app.logger.error("Error submitting routine to database: " + res.text)
         abort(500)
@@ -115,6 +191,7 @@ def routine_watcher(reader):
     while True:
         name = readfh.readline().strip()
         if name != '':
+            app.logger.info("New routine received %s" % name)
             rid, extension = name.split('.')
             create_routine(rid, extension)
         else:
@@ -144,6 +221,7 @@ def new_routine():
 
     f.save('/received/%s/%s' % (rid, filename))
     os.write(wpipe, ('%s\n' % filename).encode('utf-8'))
+    app.logger.info("new routine ok")
     return {'id': rid}
 
 

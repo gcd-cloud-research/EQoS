@@ -20,6 +20,10 @@ spec:
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      hostAliases:
+      - ip: monitornode
+        hostnames:
+          - "monitornode.eqos"
       containers:
       - image: google/cadvisor
         name: cadvisor
@@ -38,7 +42,7 @@ spec:
         - mountPath: /var/lib/docker
           name: cadvisor-claim3
           readOnly: true
-      - image: 192.168.101.76:5000/monitor
+      - image: registry:5000/monitor
         name: monitor
         resources: {}
         volumeMounts:

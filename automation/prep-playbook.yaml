@@ -1,0 +1,39 @@
+- hosts: all
+  become: true
+  tasks:
+    - name: Install dependencies
+      yum:
+        name: "{{ item }}"
+        state: present
+        update_cache: True
+      with_items:
+        - lvm2
+        - docker
+        - containerd.io
+        - epel-release
+        - python3
+        - python3-requests
+
+    - name: Update the /etc/hosts file with node name
+#      tags: current
+      become: yes
+      become_user: root
+      lineinfile:
+        path: "/etc/hosts"
+        regexp: ".*\t{{ hostvars[item]['ansible_hostname']}}\t{{ hostvars[item]['ansible_hostname']}}"
+        line: "{{ hostvars[item]['ansible_env'].SSH_CONNECTION.split(' ')[2] }}\t{{ hostvars[item]['ansible_hostname']}}\t{{ hostvars[item]['ansible_hostname']}}"
+        state: present
+        backup: yes
+      register: etchostsupdate
+      when: ansible_hostname != "{{ item }}" or ansible_hostname == "{{ item }}"
+      with_items: "{{groups['all']}}"
+
+    - name: Add IP address of all hosts to all hosts
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '.*{{ item }}$'
+        line: "{{ hostvars[item].ansible_host }} {{item}}"
+        state: present
+      when: hostvars[item].ansible_host is defined and "localhost" not in item
+      with_items: "{{ groups.all }}"
+      tags: current

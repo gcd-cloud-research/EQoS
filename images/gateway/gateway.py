@@ -6,6 +6,8 @@ from flask import Flask, request, abort, jsonify
 import requests
 from kubernetes import client, config
 from werkzeug.utils import secure_filename
+from datetime import datetime, timedelta
+from elasticsearch import Elasticsearch
 
 config.load_kube_config(config_file='/kube/config')
 KUBE_API = client.CoreV1Api()
@@ -14,6 +16,7 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "/tmp"
 ALLOWED_EXTENSIONS = ['txt', 'py', 'r']
 POSSIBLE_FILES = ['program', 'requirements']
+usingQos = False
 
 ROUTE_MAP = {
     'mongo': 'mongoapi',
@@ -22,8 +25,36 @@ ROUTE_MAP = {
 
 ALLOWED_ROUTES = [
     r'^mongo/query/tasks',
-    r'^routine$'
+    r'^mongo/query/performance',
+    r'^mongo/taskperformance',
+    r'^mongo/taskstatus',
+    r'^routine$',
+    r'^bareroutine$'
 ]
+
+
+class JsonStreamIterator:
+    # Does not accept lists as items, as it only needs to process performance objects
+    def __init__(self, response):
+        self.ite = response.iter_content(decode_unicode=True)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        string = ''
+        open_count = 0
+        for char in self.ite:
+            string += char.decode('utf-8')
+            if string[-1] == '{':
+                open_count += 1
+            if string[-1] == '}':
+                open_count -= 1
+                if not open_count:
+                    break
+        if not string:
+            raise StopIteration()
+        return json.loads(string)
 
 
 class LitePod:
@@ -146,6 +177,7 @@ def get_best_host(service_name):
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def on_request(path):
     app.logger.info("Received request. Method: %s, Route: %s" % (request.method, path))
+
     if not path:  # If /, return 200 (for testing)
         return ''
 
@@ -159,10 +191,11 @@ def on_request(path):
     else:
         service, route = path.split('/', maxsplit=1)
 
+    params = request.query_string.decode()
     # Get the service related to this path
     mapped_service = ROUTE_MAP[service] if service in ROUTE_MAP else ''
     if not mapped_service:
-        app.logger.info('Desired service not in mapping')
+        app.logger.info('Desired service %s not in mapping' % service)
         abort(404)
         return
 
@@ -175,6 +208,8 @@ def on_request(path):
     app.logger.info("Got best host: %s" % host)
     url = 'http://%s/%s' % (host, route)
 
+    if params:
+        url = url + "?" + params
     # Add files if necessary
     app.logger.info("Processing files")
     files = {}
@@ -206,5 +241,7 @@ def on_request(path):
 
 
 if __name__ == '__main__':
-    QOS = get_qos()
+    if usingQos:
+        QOS = get_qos()
+
     app.run(debug=True, host='0.0.0.0')

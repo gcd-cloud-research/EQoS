@@ -23,11 +23,22 @@ spec:
       labels:
         io.kompose.service: mongoapi
     spec:
+      hostAliases:
+      - ip: servicenode
+        hostnames:
+          - "servicenode.eqos"
       containers:
-      - image: 192.168.101.76:5000/mongoapi
+      - image: registry:5000/mongoapi
         name: mongoapi
         ports:
         - containerPort: 8000
         resources: {}
       restartPolicy: Always
+      nodeSelector:
+        type: internalService
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "internalService"
+          effect: "NoSchedule"
 status: {}

@@ -3,7 +3,14 @@ import os
 from datetime import datetime
 from calendar import timegm
 import requests
+import logging
+from elasticsearch import Elasticsearch, helpers
 
+logging.basicConfig(level=logging.INFO)
+
+es = Elasticsearch([
+    'monitornode.eqos:9200'
+])
 
 URL = 'http://localhost:8080/api/v1.3/'
 LAST_REPORT_FILE = 'reports.json'
@@ -12,7 +19,9 @@ LAST_REPORT_FILE = 'reports.json'
 def get_last_report(name):
     """Get last report time for given name (container or machine)."""
     with open(LAST_REPORT_FILE) as fh:
-        j = json.load(fh)
+        fh = fh.read()
+        j = json.loads(fh)
+        logging.info("LAST: %s" % j)
         if name in j:
             last = j[name]
         else:
@@ -41,10 +50,11 @@ def nanosecs(ts):
 
 
 def get_stats(entry):
+    per_cpu_usage = len(entry['cpu']['usage']['per_cpu_usage']) if 'per_cpu_usage' in entry['cpu']['usage'] else 0
     return \
         entry['timestamp'],\
         entry['cpu']['usage']['total'],\
-        len(entry['cpu']['usage']['per_cpu_usage']),\
+        per_cpu_usage,\
         entry['memory']['usage']
 
 
@@ -53,7 +63,9 @@ def get_usage(part):
     if len(part_stats) < 2:
         return None
     # Extract relevant data
+
     time, cpu, num_cores, mem = get_stats(part_stats[-1])
+    logging.info("Time: %s CPU: %s Cores: %s, MEM: %s" % (time, cpu, num_cores, mem))
     prev_time, prev_cpu, _, _ = get_stats(part_stats[-2])
 
     # Calculate CPU and memory usage
@@ -61,8 +73,8 @@ def get_usage(part):
         return None
 
     cpu_usage = (cpu - prev_cpu) / (nanosecs(time) - nanosecs(prev_time))
-    cpu_percent = float(cpu_usage) / float(num_cores) * 100  # Over number of host cores
-    mem_percent = float(mem) / float(part['spec']['memory']['limit']) * 100  # Over container's reservation
+    cpu_percent = float(cpu_usage) / float(num_cores) * 100 if cpu_usage > 0 else 0  # Over number of host cores
+    mem_percent = float(mem) / float(part['spec']['memory']['limit']) * 100 if mem > 0 else 0 # Over container's reservation
     return {
         "time": time,
         "cpu": cpu_percent,
@@ -126,11 +138,24 @@ def get_hostname():
     return hostname
 
 
+def insert_elastic(data):
+    try:
+        response = helpers.bulk(es, data, index='performance')
+        # print(response)
+    except Exception as error:
+        logging.debug(error)
+        pass
+
+
 if __name__ == "__main__":
     host_performance = get_machine_usage(get_hostname())
     if host_performance:
-        requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
+        # requests.post("http://mongoapi:8000/performance", data=json.dumps(host_performance))
+        logging.info("Host performance: %s" % host_performance)
+        insert_elastic(host_performance)
 
     container_performance = get_container_usage()
     if container_performance:
-        requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
+        # requests.post("http://mongoapi:8000/performance", data=json.dumps(container_performance))
+        logging.info("Container performance: %s" % container_performance)
+        insert_elastic(container_performance)

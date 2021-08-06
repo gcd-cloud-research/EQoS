@@ -56,7 +56,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
 
   monitor:
-    image: 192.168.101.76:5000/monitor
+    image: 192.168.101.63:5000/monitor
     volumes:
       - /etc/hostname:/hostname
 
