@@ -32,9 +32,9 @@ routine_id = sys.argv[1]
 logging.debug("Starting...")
 
 if byPassQos:
-    INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": {'status': 'RUNNING'}})
+    INTERNAL_CLIENT.ehqos.tasks.update_one({"_id": ObjectId(routine_id)}, {"$set": {'status': 'RUNNING', 'start_run_time':  datetime.utcnow().isoformat()}})
 else:
-    requests.post(URL, data=json.dumps({'status': 'RUNNING'}))
+    requests.post(URL, data=json.dumps({'status': 'RUNNING', 'start_run_time':  datetime.utcnow().isoformat()}))
 
 logging.debug("Routine set as RUNNING")
 
