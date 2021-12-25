@@ -139,6 +139,8 @@ class Worker:
         # The selection could be better if the QoS knew whether the job is CPU or memory intensive.
         # Currently, selection takes place by averaging CPU and memory load and taking the lowest.
         # Thus, it is assumed that CPU and memory have the same weight in the selection.
+        containers = performance.items()
+        logging.debug("Containers: %s" % containers)
         selected_container = min(performance.items(), key=lambda tup: tup[1]['cpu'] + tup[1]['memory'] / 2)[0]
         resp.body = json.dumps(list(filter(lambda pod: pod['container'] == selected_container, pods))[0])
 
