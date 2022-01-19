@@ -24,6 +24,7 @@ spec:
         io.kompose.service: gateway
     spec:
       hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       hostAliases:
       - ip: monitornode
         hostnames:
