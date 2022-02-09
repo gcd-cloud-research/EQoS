@@ -9,7 +9,8 @@ metadata:
     io.kompose.service: gateway
   name: gateway
 spec:
-  type: NodePort
+  type: ClusterIP
+
   ports:
   - name: "serviceport"
     port: 5000

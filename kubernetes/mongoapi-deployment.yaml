@@ -26,7 +26,7 @@ spec:
       hostAliases:
       - ip: servicenode
         hostnames:
-          - "servicenode.eqos"
+          - "monitornode.eqos"
       containers:
       - image: registry:5000/mongoapi
         name: mongoapi

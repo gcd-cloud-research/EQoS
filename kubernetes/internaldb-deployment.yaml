@@ -29,7 +29,7 @@ spec:
           value: toor
         - name: MONGO_INITDB_ROOT_USERNAME
           value: admin
-        image: mongo
+        image: mongo:4.4
         name: internaldb
         ports:
         - containerPort: 27017

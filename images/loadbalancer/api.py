@@ -9,7 +9,7 @@ from elasticsearch import Elasticsearch
 
 logging.basicConfig(level=logging.DEBUG)
 
-# config.load_incluster_config()
+# config.py.load_incluster_config()
 KUBE_API = client.CoreV1Api()
 
 LOAD_CHECKING_INTERVAL = 3 * 60  # Amount of seconds to go back when averaging load for choosing least busy container
@@ -21,6 +21,14 @@ es = Elasticsearch([
     'monitornode.eqos:9200'
 ])
 
+
+costs = {
+    'onekube-ip-192-168-101-109.localdomain': 30,
+    'onekube-ip-192-168-101-112.localdomain': 40,
+    'onekube-ip-192-168-101-110.localdomain': 10,
+    'onekube-ip-192-168-101-111.localdomain': 1,
+    'onekube-ip-192-168-101-113.localdomain': 10
+}
 
 def add_dicts(dict1, dict2):
     if dict1.keys() != dict2.keys():
@@ -139,6 +147,8 @@ class Worker:
         # The selection could be better if the QoS knew whether the job is CPU or memory intensive.
         # Currently, selection takes place by averaging CPU and memory load and taking the lowest.
         # Thus, it is assumed that CPU and memory have the same weight in the selection.
+        containers = performance.items()
+        logging.debug("Containers: %s" % containers)
         selected_container = min(performance.items(), key=lambda tup: tup[1]['cpu'] + tup[1]['memory'] / 2)[0]
         resp.body = json.dumps(list(filter(lambda pod: pod['container'] == selected_container, pods))[0])
 
@@ -155,7 +165,9 @@ class SystemLoad:
         for entry in res:
             if entry['host'] not in included_hosts:
                 del entry['usage']['time']
-                host_usages.append(entry['usage'])
+                usage = entry['usage']
+                usage['cost'] = costs[entry['host']]
+                host_usages.append(usage)
                 included_hosts.append(entry['host'])
 
         if len(host_usages) == 0:
