@@ -1,4 +1,4 @@
-# A QoS-aware container-based private cloud with dynamic autoscaling
+# KAQoS: Kubernetes autoscaler QoS-aware 
 
 ## About
 
