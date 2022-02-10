@@ -1,3 +1,7 @@
+- hosts: monitornode
+  name: Gather facts from collectors
+  tasks: [ ]
+
 - hosts: dockerregistry
   gather_facts: yes
   tasks:
@@ -25,7 +29,28 @@
         - export UTILS_DIR="$ROOT_DIR"/utils
         - export PATH="$PATH:$UTILS_DIR"
         - alias prunepods='kubectl delete pod --field-selector=status.phase==Succeeded && kubectl delete pod --field-selector=status.phase==Failed'
+        - alias getpods='kubectl get pods -o wide'
+        - alias getnodes='kubectl get nodes -o wide'
         - ''
+
+    - name: Change ENV variables in Dockerfile
+      lineinfile:
+        path: /mnt/public/EQoS/kubernetes/{{item}}-deployment.yaml
+        regexp: '- ip:'
+        line: "      - ip: {{ hostvars['monitornode']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}"
+      with_items:
+        - gateway
+        - mongoapi
+        - monitor
+
+    - name: Change ENV variables in Dockerfile
+      lineinfile:
+        path: /mnt/public/EQoS/kubernetes/{{item}}-deployment.yaml
+        regexp: '- ip:'
+        line: "        - ip: {{ hostvars['monitornode']['ansible_env'].SSH_CONNECTION.split(' ')[2] }}"
+      with_items:
+        - gaqos
+        - cpuwaster
 
     - name: Build all the images
       command: buildimages.sh registry:5000
@@ -36,7 +61,7 @@
       shell: deployall.sh
       register: result
       failed_when:
-        - result.rc == 0
+        - result.rc  0
         - '"AlreadyExists" not in result.stdout'
         - '"Created" not in result.stdout'
       tags:

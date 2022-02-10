@@ -32,20 +32,24 @@
         packages:
           - git
 
-    - include_vars: git-credentials.yml
-
     - name: Clone git repo
       git:
-        repo: "https://{{secret_git_username|urlencode()}}:{{secret_git_password|urlencode()}}@github.com/LluisMas/EQoS.git"
+        repo: "https://github.com/LluisMas/EQoS.git"
         dest: "/mnt/public/EQoS"
         update: yes
 
-    - name: Git config
+    - name: Git config.py
       git_config:
         name: core.filemode
         value: false
         scope: local
         repo: /mnt/public/EQoS
+
+    - name: Setup kubeconfig
+      command: "{{ item }}"
+      with_items:
+        - mkdir -p /mnt/public/EQoS/images/gateway/kube/
+        - cp -rf $HOME/.kube/* /mnt/public/EQoS/images/gateway/kube/
 
     - name: Change ENV variables in Dockerfile
       lineinfile:
@@ -56,7 +60,7 @@
         - consumer
         - producer
 
-    - name: Creates config file for the MongoAPI
+    - name: Creates config.py file for the MongoAPI
       copy:
         dest: /mnt/public/EQoS/images/mongoapi/config.json
         content: |
@@ -71,7 +75,7 @@
           	}
           }
 
-    - name: Add kubectl config to pod
-      shell: kubectl config view --flatten | install -D /dev/stdin /mnt/public/EQoS/images/gateway/kube/config
+    - name: Add kubectl config.py to pod
+      shell: kubectl config.py view --flatten | install -D /dev/stdin /mnt/public/EQoS/images/gateway/kube/config.py
       tags:
         - current

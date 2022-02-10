@@ -12,7 +12,7 @@
       local_action: copy content={{ output.stdout }} dest=out.sh
       become: False
 
-- hosts: kubernetesnodes[-1]
+- hosts: kubernetesnodes:kubernetesservice:kubernetesmonitor
   become: true
   tasks:
     - name: Reset the Kubernetes cluster using kubeadm
@@ -69,7 +69,7 @@
       tags:
         - current
 
-- hosts: kubernetesnodes:kubernetesmaster
+- hosts: kubernetesnodes:kubernetesmaster:kubernetesmonitor:kubernetesservice
   become: true
   tasks:
     - name: Edit Daemon.json
