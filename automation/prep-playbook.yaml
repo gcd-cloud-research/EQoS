@@ -1,6 +1,7 @@
 - hosts: all
   become: true
   tasks:
+    # Comment if it fails
     - name: Install dependencies
       yum:
         name: "{{ item }}"
@@ -37,3 +38,14 @@
       when: hostvars[item].ansible_host is defined and "localhost" not in item
       with_items: "{{ groups.all }}"
       tags: current
+
+
+    - name: Add alias to the master
+      lineinfile:
+        state: present
+        path: "/root/.bashrc"
+        insertbefore: "alias rm='rm -i'"
+        firstmatch: yes
+        line: '{{item}}'
+      with_items:
+        - export KUBECONFIG=/etc/kubernetes/admin.conf

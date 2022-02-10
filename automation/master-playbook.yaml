@@ -22,8 +22,8 @@
       command: "{{ item }}"
       with_items:
         - mkdir -p $HOME/.kube
-        - /bin/cp -rf /etc/kubernetes/admin.conf $HOME/.kube/config
-        - chown root:root $HOME/.kube/config
+        - /bin/cp -rf /etc/kubernetes/admin.conf $HOME/.kube/config.py
+        - chown root:root $HOME/.kube/config.py
 
     - name: Storing Logs and Generated token for future purpose.
       local_action: copy content={{ output.stdout }} dest=join_token

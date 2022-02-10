@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch
 
-config.load_kube_config(config_file='/kube/config')
+config.load_kube_config(config_file='/kube/config.py')
 KUBE_API = client.CoreV1Api()
 QOS = None
 app = Flask(__name__)
